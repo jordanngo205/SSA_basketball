@@ -236,11 +236,13 @@ def scrape_player(
     safe_name = player_name.replace(" ", "_")
 
     endpoints = [
-        ("overall",           sf.get_player_overall),
-        ("additional_offense", sf.get_player_additional_offense),
-        ("play_types",        sf.get_player_play_types),
-        ("defensive",         sf.get_player_defensive),
-        ("shot_chart",        sf.get_player_shot_chart),
+        ("overall",              sf.get_player_overall),
+        ("offense_play_types",   sf.get_player_offense_play_types),
+        ("defense_play_types",   sf.get_player_defense_play_types),
+        ("play_types_detail",    sf.get_player_play_types),
+        ("tendency_shooting",    sf.get_player_shooting_tendency),
+        ("tendency_dribble",     sf.get_player_shooting_tendency_dribble),
+        ("tendency_finishing",   sf.get_player_shooting_tendency_finishing),
     ]
 
     for key, fn in endpoints:
