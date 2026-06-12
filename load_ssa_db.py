@@ -1,402 +1,553 @@
 #!/usr/bin/env python3
 """
-Load SSA scraped JSON files into SQLite.
-Mirrors the pattern of load_synergy_player_offense_summary.py.
-
-Creates three tables:
-  - ssa_team_stats       (overall + additional offense + defensive)
-  - ssa_player_stats     (overall + additional offense + defensive per player)
-  - ssa_player_play_types (play type breakdown per player)
-
-Usage:
-    python load_ssa_db.py                      # Load latest files in data/raw/
-    python load_ssa_db.py --raw-dir ./data/raw # Custom raw dir
-    python load_ssa_db.py --db ./data/db/ssa.db
+Load all scraped SSA JSON files into SQLite.
+Usage: python load_ssa_db.py [--data-dir data/raw] [--db data/db/ssa.db]
 """
 
 import argparse
-import glob
 import json
 import os
+import re
 import sqlite3
-import sys
-from datetime import datetime
+from pathlib import Path
 
-RAW_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw")
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "db", "ssa.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RAW_DIR  = os.path.join(BASE_DIR, "data", "raw")
+DB_PATH  = os.path.join(BASE_DIR, "data", "db", "ssa.db")
+
+CANADA_WNT_ID = "4f9b83f2-8209-4e04-a9bb-6fcd0a03f739"
+
+PLAYER_NAME_TO_ID = {
+    "Paige_Crozon":       "d29fd8da-3ead-4c41-aa12-b496fb0debe9",
+    "Katherine_Plouffe":  "f532294f-8e69-4cbb-be69-7fa1cd6189b5",
+    "Kacie_Bosch":        "d9c544b9-cb4d-4280-9bef-6b1102fc7b2a",
+    "Saicha_Grant-Allen": "9f9a4068-97fb-4bd2-a865-0c354c533f4d",
+    "Tara_Wallack":       "2b6dc75e-dd80-4324-9737-8bc4a0859ce8",
+}
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS teams (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    competition_type TEXT,
+    sex TEXT,
+    game_type TEXT,
+    city TEXT,
+    country_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS players (
+    id TEXT PRIMARY KEY,
+    full_name TEXT,
+    team_id TEXT,
+    position TEXT,
+    height REAL,
+    jersey_number TEXT,
+    nationality TEXT
+);
+
+CREATE TABLE IF NOT EXISTS matches (
+    id TEXT PRIMARY KEY,
+    season_id TEXT,
+    season_name TEXT,
+    home_team_id TEXT,
+    home_team_name TEXT,
+    away_team_id TEXT,
+    away_team_name TEXT,
+    home_score INTEGER,
+    away_score INTEGER,
+    match_date TEXT
+);
+
+CREATE TABLE IF NOT EXISTS team_stats (
+    team_id TEXT,
+    period TEXT,
+    stat_label TEXT,
+    total REAL,
+    per_game REAL,
+    PRIMARY KEY (team_id, period, stat_label)
+);
+
+CREATE TABLE IF NOT EXISTS team_play_types (
+    team_id TEXT,
+    period TEXT,
+    side TEXT,
+    label TEXT,
+    possession REAL,
+    points REAL,
+    ppp REAL,
+    pct REAL,
+    PRIMARY KEY (team_id, period, side, label)
+);
+
+CREATE TABLE IF NOT EXISTS team_play_types_detail (
+    team_id TEXT,
+    period TEXT,
+    play_type TEXT,
+    poss REAL,
+    ppp REAL,
+    usage REAL,
+    ft_m INTEGER,
+    ft_a INTEGER,
+    two_pt_m INTEGER,
+    two_pt_a INTEGER,
+    two_pt_pct REAL,
+    three_pt_m INTEGER,
+    three_pt_a INTEGER,
+    three_pt_pct REAL,
+    turnovers INTEGER,
+    assists REAL,
+    PRIMARY KEY (team_id, period, play_type)
+);
+
+CREATE TABLE IF NOT EXISTS player_stats (
+    player_id TEXT,
+    period TEXT,
+    stat_label TEXT,
+    total REAL,
+    per_game REAL,
+    PRIMARY KEY (player_id, period, stat_label)
+);
+
+CREATE TABLE IF NOT EXISTS player_play_types (
+    player_id TEXT,
+    period TEXT,
+    side TEXT,
+    label TEXT,
+    possession REAL,
+    points REAL,
+    ppp REAL,
+    pct REAL,
+    PRIMARY KEY (player_id, period, side, label)
+);
+
+CREATE TABLE IF NOT EXISTS player_play_types_detail (
+    player_id TEXT,
+    period TEXT,
+    play_type TEXT,
+    poss REAL,
+    ppp REAL,
+    usage REAL,
+    ft_m INTEGER,
+    ft_a INTEGER,
+    two_pt_m INTEGER,
+    two_pt_a INTEGER,
+    two_pt_pct REAL,
+    three_pt_m INTEGER,
+    three_pt_a INTEGER,
+    three_pt_pct REAL,
+    turnovers INTEGER,
+    assists REAL,
+    PRIMARY KEY (player_id, period, play_type)
+);
+
+CREATE TABLE IF NOT EXISTS player_tendency_shooting (
+    player_id TEXT,
+    period TEXT,
+    category TEXT,
+    hand TEXT,
+    short_range_m INTEGER,
+    short_range_a INTEGER,
+    short_range_pct REAL,
+    mid_range_m INTEGER,
+    mid_range_a INTEGER,
+    mid_range_pct REAL,
+    two_pt_m INTEGER,
+    two_pt_a INTEGER,
+    two_pt_pct REAL,
+    PRIMARY KEY (player_id, period, category, hand)
+);
+
+CREATE TABLE IF NOT EXISTS player_tendency_dribble (
+    player_id TEXT,
+    period TEXT,
+    play_type TEXT,
+    hand TEXT,
+    short_range_m INTEGER,
+    short_range_a INTEGER,
+    short_range_pct REAL,
+    mid_range_m INTEGER,
+    mid_range_a INTEGER,
+    mid_range_pct REAL,
+    two_pt_m INTEGER,
+    two_pt_a INTEGER,
+    two_pt_pct REAL,
+    PRIMARY KEY (player_id, period, play_type, hand)
+);
+
+CREATE TABLE IF NOT EXISTS player_tendency_finishing (
+    player_id TEXT,
+    period TEXT,
+    shot_type TEXT,
+    hand TEXT,
+    made INTEGER,
+    attempted INTEGER,
+    pct REAL,
+    PRIMARY KEY (player_id, period, shot_type, hand)
+);
+
+CREATE TABLE IF NOT EXISTS player_turnovers (
+    player_id TEXT,
+    period TEXT,
+    play_type TEXT,
+    bad_pass INTEGER,
+    traveling INTEGER,
+    dribble_turnover INTEGER,
+    line_violation INTEGER,
+    clock_violation INTEGER,
+    offensive_foul INTEGER,
+    other INTEGER,
+    total INTEGER,
+    PRIMARY KEY (player_id, period, play_type)
+);
+
+CREATE TABLE IF NOT EXISTS player_shot_zones (
+    player_id TEXT,
+    period TEXT,
+    is_dribble INTEGER,
+    zone TEXT,
+    made INTEGER,
+    missed INTEGER,
+    total INTEGER,
+    pct REAL,
+    PRIMARY KEY (player_id, period, is_dribble, zone)
+);
+
+CREATE INDEX IF NOT EXISTS idx_player_stats_pid     ON player_stats(player_id, period);
+CREATE INDEX IF NOT EXISTS idx_player_zones_pid      ON player_shot_zones(player_id, period, is_dribble);
+CREATE INDEX IF NOT EXISTS idx_team_stats_tid         ON team_stats(team_id, period);
+"""
 
 
-# ---------------------------------------------------------------------------
-# Schema
-# ---------------------------------------------------------------------------
-
-def ensure_tables(conn: sqlite3.Connection) -> None:
-    conn.executescript("""
-        -- Team-level aggregated stats
-        CREATE TABLE IF NOT EXISTS ssa_team_stats (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            scrape_date     TEXT NOT NULL,
-            team_id         TEXT NOT NULL,
-            season_id       TEXT NOT NULL,
-            period          TEXT NOT NULL,
-            stat_type       TEXT NOT NULL,   -- 'overall' | 'additional_offense' | 'defensive'
-            label           TEXT NOT NULL,
-            value_total     REAL,
-            value_per_game  REAL,
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(scrape_date, team_id, season_id, period, stat_type, label)
-        );
-
-        -- Player-level aggregated stats (overall + additional_offense + defensive)
-        CREATE TABLE IF NOT EXISTS ssa_player_stats (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            scrape_date     TEXT NOT NULL,
-            player_id       TEXT NOT NULL,
-            player_name     TEXT,
-            team_id         TEXT NOT NULL,
-            season_id       TEXT NOT NULL,
-            period          TEXT NOT NULL,
-            stat_type       TEXT NOT NULL,
-            label           TEXT NOT NULL,
-            value_total     REAL,
-            value_per_game  REAL,
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(scrape_date, player_id, team_id, season_id, period, stat_type, label)
-        );
-
-        -- Player play type breakdown
-        CREATE TABLE IF NOT EXISTS ssa_player_play_types (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            scrape_date     TEXT NOT NULL,
-            player_id       TEXT NOT NULL,
-            player_name     TEXT,
-            team_id         TEXT NOT NULL,
-            season_id       TEXT NOT NULL,
-            period          TEXT NOT NULL,
-            play_type       TEXT NOT NULL,
-            label           TEXT NOT NULL,
-            value_total     REAL,
-            value_per_game  REAL,
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(scrape_date, player_id, team_id, season_id, period, play_type, label)
-        );
-
-        -- Match results
-        CREATE TABLE IF NOT EXISTS ssa_matches (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            match_id        TEXT NOT NULL UNIQUE,
-            season_id       TEXT,
-            season_name     TEXT,
-            competition_name TEXT,
-            home_team_id    TEXT,
-            home_team_name  TEXT,
-            home_score      INTEGER,
-            away_team_id    TEXT,
-            away_team_name  TEXT,
-            away_score      INTEGER,
-            match_date      TEXT,
-            match_type      TEXT,
-            match_status    TEXT,
-            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_ssa_team_stats_team   ON ssa_team_stats(team_id, period);
-        CREATE INDEX IF NOT EXISTS idx_ssa_player_stats_player ON ssa_player_stats(player_id, period);
-        CREATE INDEX IF NOT EXISTS idx_ssa_matches_season    ON ssa_matches(season_id);
-    """)
-    conn.commit()
-    print("Tables created/verified.")
+def upsert(conn, table, row):
+    cols = ", ".join(row.keys())
+    placeholders = ", ".join(["?"] * len(row))
+    conn.execute(
+        f"INSERT OR REPLACE INTO {table} ({cols}) VALUES ({placeholders})",
+        list(row.values()),
+    )
 
 
-# ---------------------------------------------------------------------------
-# Loaders
-# ---------------------------------------------------------------------------
-
-def _parse_filename(path: str) -> dict:
-    """
-    Extract date, entity_type, entity_id, stat_type, period from filename.
-    Pattern: {date}_team_{id}_{stat_type}_{period}.json
-             {date}_player_{name}_{stat_type}_{period}.json
-             {date}_team_{id}_matches.json
-    """
-    name = os.path.basename(path).replace(".json", "")
-    parts = name.split("_")
+def _shooting_vals(values):
+    v = values[0] if isinstance(values, list) and values else (values or {})
     return {
-        "raw_name": name,
-        "date": parts[0] if parts else "",
+        "short_range_m":   v.get("shortRangeM", 0),
+        "short_range_a":   v.get("shortRangeA", 0),
+        "short_range_pct": v.get("shortRangePercentage", 0.0),
+        "mid_range_m":     v.get("midRangeM", 0),
+        "mid_range_a":     v.get("midRangeA", 0),
+        "mid_range_pct":   v.get("midRangePercentage", 0.0),
+        "two_pt_m":        v.get("threePtM", 0),
+        "two_pt_a":        v.get("threePtA", 0),
+        "two_pt_pct":      v.get("threePtPercentage", 0.0),
     }
 
 
-def load_stats_file(
-    conn: sqlite3.Connection,
-    path: str,
-    entity_type: str,   # 'team' or 'player'
-    entity_id: str,
-    entity_name: str,
-    team_id: str,
-    season_id: str,
-    period: str,
-    stat_type: str,
-    scrape_date: str,
-) -> int:
-    """Load a flat stats JSON file (list of {label, values} dicts) into DB."""
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+def load_team_info(conn, path):
+    d = json.load(open(path))
+    upsert(conn, "teams", {
+        "id": d["id"], "name": d.get("name"),
+        "competition_type": d.get("competitionType"),
+        "sex": d.get("sex"), "game_type": d.get("gameType"),
+        "city": d.get("city"), "country_id": d.get("countryId"),
+    })
 
-    if not isinstance(data, list):
-        print(f"  Skipping {path} — unexpected format (not a list)")
-        return 0
 
-    table = "ssa_team_stats" if entity_type == "team" else "ssa_player_stats"
-    inserted = 0
+def load_matches(conn, path):
+    for m in json.load(open(path)):
+        upsert(conn, "matches", {
+            "id": m.get("id"), "season_id": m.get("seasonId"),
+            "season_name": m.get("seasonName"),
+            "home_team_id": m.get("homeTeamId"), "home_team_name": m.get("homeTeamName"),
+            "away_team_id": m.get("awayTeamId"), "away_team_name": m.get("awayTeamName"),
+            "home_score": m.get("homeTeamScore"), "away_score": m.get("awayTeamScore"),
+            "match_date": (m.get("matchStartTime") or "")[:10],
+        })
 
+
+def load_stats(conn, table, id_col, entity_id, period, path):
+    for item in json.load(open(path)):
+        v = item.get("values", {})
+        upsert(conn, table, {
+            id_col: entity_id, "period": period,
+            "stat_label": item["label"],
+            "total": v.get("total"), "per_game": v.get("perGame"),
+        })
+
+
+def load_play_types(conn, table, id_col, entity_id, period, side, path):
+    for item in json.load(open(path)):
+        v = item.get("values", {})
+        upsert(conn, table, {
+            id_col: entity_id, "period": period, "side": side,
+            "label": item["label"],
+            "possession": v.get("possession"), "points": v.get("points"),
+            "ppp": v.get("pointsPerPossession"), "pct": v.get("possessionPercentage"),
+        })
+
+
+def load_play_types_detail(conn, table, id_col, entity_id, period, path):
+    for item in json.load(open(path)):
+        v = item.get("values", {})
+        upsert(conn, table, {
+            id_col: entity_id, "period": period, "play_type": item["label"],
+            "poss": v.get("numberOfPossessions"), "ppp": v.get("pointsPerPossession"),
+            "usage": v.get("usage"),
+            "ft_m": v.get("ftM"), "ft_a": v.get("ftA"),
+            "two_pt_m": v.get("twoPtM"), "two_pt_a": v.get("twoPtA"),
+            "two_pt_pct": v.get("twoPtPercentage"),
+            "three_pt_m": v.get("threePtM"), "three_pt_a": v.get("threePtA"),
+            "three_pt_pct": v.get("threePtPercentage"),
+            "turnovers": v.get("turnovers"), "assists": v.get("assistance"),
+        })
+
+
+def load_tendency_shooting(conn, player_id, period, path):
+    """
+    [0] TOTAL_SHOTS → category=TOTAL_SHOTS, hand=ALL
+      [1] DRIBBLE_JUMPER → category=DRIBBLE_JUMPER, hand=ALL
+        [2] FROM_LEFT/RIGHT_HAND → hand=LEFT/RIGHT
+      [1] NO_DRIBBLE_JUMPER → category=NO_DRIBBLE_JUMPER, hand=ALL
+    """
+    data = json.load(open(path))
+    current_cat = "TOTAL_SHOTS"
     for item in data:
-        if not isinstance(item, dict) or "label" not in item:
-            continue
-        label      = item["label"]
-        values     = item.get("values", {})
-        val_total  = values.get("total")
-        val_game   = values.get("perGame")
-
-        if entity_type == "team":
-            conn.execute(f"""
-                INSERT OR REPLACE INTO {table}
-                    (scrape_date, team_id, season_id, period, stat_type, label, value_total, value_per_game)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (scrape_date, entity_id, season_id, period, stat_type, label, val_total, val_game))
+        label, level = item["label"], item["level"]
+        if level == 0:
+            current_cat, hand = label, "ALL"
+        elif level == 1:
+            if label.startswith("FROM_"):
+                hand = "LEFT" if "LEFT" in label else "RIGHT"
+            else:
+                current_cat, hand = label, "ALL"
         else:
-            conn.execute(f"""
-                INSERT OR REPLACE INTO {table}
-                    (scrape_date, player_id, player_name, team_id, season_id, period, stat_type, label, value_total, value_per_game)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (scrape_date, entity_id, entity_name, team_id, season_id, period, stat_type, label, val_total, val_game))
-
-        inserted += 1
-
-    conn.commit()
-    return inserted
+            hand = "LEFT" if "LEFT" in label else "RIGHT"
+        upsert(conn, "player_tendency_shooting", {
+            "player_id": player_id, "period": period,
+            "category": current_cat, "hand": hand,
+            **_shooting_vals(item["values"]),
+        })
 
 
-def load_play_types_file(
-    conn: sqlite3.Connection,
-    path: str,
-    player_id: str,
-    player_name: str,
-    team_id: str,
-    season_id: str,
-    period: str,
-    scrape_date: str,
-) -> int:
-    """Load a play-types JSON file into ssa_player_play_types."""
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    if not isinstance(data, list):
-        return 0
-
-    inserted = 0
-    # Expected structure: [{play_type: "SET_PLAY", stats: [{label, values}]}, ...]
-    # OR flat list if SSA returns differently — handle both
+def load_tendency_dribble(conn, player_id, period, path):
+    """
+    [0] ALL → play_type=ALL, hand=ALL
+      [1] FROM_LEFT/RIGHT → play_type=ALL, hand=LEFT/RIGHT
+      [1] PICK_AND_ROLL → play_type=PICK_AND_ROLL, hand=ALL
+        [2] FROM_LEFT/RIGHT → play_type=PICK_AND_ROLL, hand=LEFT/RIGHT
+      ...
+    """
+    data = json.load(open(path))
+    current_pt = "ALL"
     for item in data:
-        if not isinstance(item, dict):
-            continue
-
-        play_type = (
-            item.get("playType")
-            or item.get("play_type")
-            or item.get("label")
-            or "UNKNOWN"
-        )
-        stats = item.get("stats") or item.get("values") or []
-
-        if isinstance(stats, list):
-            for stat in stats:
-                if not isinstance(stat, dict) or "label" not in stat:
-                    continue
-                values = stat.get("values", {})
-                conn.execute("""
-                    INSERT OR REPLACE INTO ssa_player_play_types
-                        (scrape_date, player_id, player_name, team_id, season_id, period, play_type, label, value_total, value_per_game)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    scrape_date, player_id, player_name, team_id, season_id, period,
-                    play_type, stat["label"],
-                    values.get("total"), values.get("perGame"),
-                ))
-                inserted += 1
-        elif isinstance(item.get("values"), dict):
-            # Flat item is itself a stat row, play_type = item.label
-            values = item.get("values", {})
-            conn.execute("""
-                INSERT OR REPLACE INTO ssa_player_play_types
-                    (scrape_date, player_id, player_name, team_id, season_id, period, play_type, label, value_total, value_per_game)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                scrape_date, player_id, player_name, team_id, season_id, period,
-                play_type, play_type,
-                values.get("total"), values.get("perGame"),
-            ))
-            inserted += 1
-
-    conn.commit()
-    return inserted
+        label, level = item["label"], item["level"]
+        if level == 0:
+            current_pt, hand = "ALL", "ALL"
+        elif level == 1:
+            if label.startswith("FROM_"):
+                hand = "LEFT" if "LEFT" in label else "RIGHT"
+                current_pt = "ALL"
+            else:
+                current_pt, hand = label, "ALL"
+        else:
+            hand = "LEFT" if "LEFT" in label else "RIGHT"
+        upsert(conn, "player_tendency_dribble", {
+            "player_id": player_id, "period": period,
+            "play_type": current_pt, "hand": hand,
+            **_shooting_vals(item["values"]),
+        })
 
 
-def load_matches_file(conn: sqlite3.Connection, path: str) -> int:
-    """Load a matches JSON file into ssa_matches."""
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    if not isinstance(data, list):
-        return 0
-
-    inserted = 0
-    for m in data:
-        if not isinstance(m, dict):
-            continue
-        try:
-            conn.execute("""
-                INSERT OR IGNORE INTO ssa_matches
-                    (match_id, season_id, season_name, competition_name,
-                     home_team_id, home_team_name, home_score,
-                     away_team_id, away_team_name, away_score,
-                     match_date, match_type, match_status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                m.get("id"), m.get("seasonId"), m.get("seasonName"),
-                m.get("competitionName"),
-                m.get("homeTeamId"), m.get("homeTeamName"), m.get("homeTeamScore"),
-                m.get("awayTeamId"), m.get("awayTeamName"), m.get("awayTeamScore"),
-                m.get("matchStartTime"), m.get("matchType"), m.get("matchStatus"),
-            ))
-            inserted += 1
-        except Exception as e:
-            print(f"  Error inserting match {m.get('id')}: {e}")
-
-    conn.commit()
-    return inserted
+def load_tendency_finishing(conn, player_id, period, path):
+    """
+    [0] ALL
+      [1] LAYUP / FLOATER_OR_RUNNER / HOOK_SHOT / DUNK / TIP_SHOT / JUMPER
+        [2] FROM_LEFT/RIGHT_HAND
+    """
+    data = json.load(open(path))
+    current_shot = "ALL"
+    for item in data:
+        label, level = item["label"], item["level"]
+        v = item["values"]
+        if level == 0:
+            current_shot, hand = label, "ALL"
+        elif level == 1:
+            current_shot, hand = label, "ALL"
+        else:
+            hand = "LEFT" if "LEFT" in label else "RIGHT"
+        upsert(conn, "player_tendency_finishing", {
+            "player_id": player_id, "period": period,
+            "shot_type": current_shot, "hand": hand,
+            "made": v.get("made", 0), "attempted": v.get("attempted", 0),
+            "pct": v.get("percentage", 0.0),
+        })
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
+def load_turnovers(conn, player_id, period, path):
+    for item in json.load(open(path)):
+        v = item.get("values", {})
+        upsert(conn, "player_turnovers", {
+            "player_id": player_id, "period": period, "play_type": item["label"],
+            "bad_pass": v.get("BAD_PASS", 0), "traveling": v.get("TRAVELING", 0),
+            "dribble_turnover": v.get("DRIBBLE_TURNOVER", 0),
+            "line_violation": v.get("LINE_VIOLATION", 0),
+            "clock_violation": v.get("CLOCK_VIOLATION", 0),
+            "offensive_foul": v.get("OFFENSIVE_FOUL", 0),
+            "other": v.get("OTHER", 0), "total": v.get("TOTAL", 0),
+        })
+
+
+def load_shot_zones(conn, player_id, period, is_dribble, path):
+    for item in json.load(open(path)):
+        v = item.get("values", {})
+        upsert(conn, "player_shot_zones", {
+            "player_id": player_id, "period": period,
+            "is_dribble": 1 if is_dribble else 0,
+            "zone": item["label"],
+            "made": v.get("made", 0), "missed": v.get("missed", 0),
+            "total": v.get("total", 0), "pct": v.get("percentage", 0.0),
+        })
+
+
+def seed_static(conn):
+    upsert(conn, "teams", {
+        "id": CANADA_WNT_ID, "name": "Canada WNT",
+        "competition_type": "NATIONAL_TEAMS", "sex": "FEMALE",
+        "game_type": "THREE_X_THREE", "city": "Ottawa", "country_id": "CA",
+    })
+    for safe_name, pid in PLAYER_NAME_TO_ID.items():
+        pos_map = {"Paige_Crozon": "GUARD", "Katherine_Plouffe": "FORWARD",
+                   "Kacie_Bosch": "GUARD", "Saicha_Grant-Allen": "FORWARD",
+                   "Tara_Wallack": "GUARD"}
+        jersey_map = {"Paige_Crozon": "7", "Katherine_Plouffe": "2"}
+        height_map = {"Paige_Crozon": 185, "Katherine_Plouffe": 192}
+        upsert(conn, "players", {
+            "id": pid, "full_name": safe_name.replace("_", " "),
+            "team_id": CANADA_WNT_ID,
+            "position": pos_map.get(safe_name),
+            "height": height_map.get(safe_name),
+            "jersey_number": jersey_map.get(safe_name, ""),
+            "nationality": "CA",
+        })
+
+
+PERIOD_RE = r"(LAST_\d+|SEASON|ALL)$"
+TEAM_ID_RE = r"_team_([a-f0-9-]{36})_"
+
+
+def process(conn, path):
+    stem = Path(path).stem
+
+    # team info
+    if re.search(r"_team_[a-f0-9-]+_info$", stem):
+        load_team_info(conn, path)
+        return "team_info"
+
+    # matches
+    if re.search(r"_team_[a-f0-9-]+_matches$", stem):
+        load_matches(conn, path)
+        return "matches"
+
+    # team data with period
+    tm = re.search(TEAM_ID_RE, stem)
+    pm = re.search(PERIOD_RE, stem)
+    if tm and pm and "_team_" in stem:
+        team_id = tm.group(1)
+        period  = pm.group(1)
+        if "_overall_" in stem and "_offense_" not in stem and "_defense_" not in stem:
+            load_stats(conn, "team_stats", "team_id", team_id, period, path)
+        elif "_offense_play_types_" in stem:
+            load_play_types(conn, "team_play_types", "team_id", team_id, period, "offense", path)
+        elif "_defense_play_types_" in stem:
+            load_play_types(conn, "team_play_types", "team_id", team_id, period, "defense", path)
+        elif "_play_types_detail_" in stem:
+            load_play_types_detail(conn, "team_play_types_detail", "team_id", team_id, period, path)
+        else:
+            return "skip"
+        return f"team/{period}"
+
+    # player data with period
+    if "_player_" in stem and pm:
+        period = pm.group(1)
+        after  = stem.split("_player_", 1)[1]
+        # strip period suffix
+        safe_name_and_type = re.sub(rf"_{period}$", "", after)
+        # identify data type suffix
+        data_types = [
+            "shot_zones_no_dribble", "shot_zones_dribble",
+            "tendency_shooting", "tendency_dribble", "tendency_finishing",
+            "play_types_detail", "offense_play_types", "defense_play_types",
+            "turnovers", "overall",
+        ]
+        data_type = next((dt for dt in data_types if safe_name_and_type.endswith(dt)), None)
+        if not data_type:
+            return "skip"
+        safe_name = re.sub(rf"_{data_type}$", "", safe_name_and_type)
+        player_id = PLAYER_NAME_TO_ID.get(safe_name)
+        if not player_id:
+            return f"skip (unknown: {safe_name})"
+
+        if data_type == "overall":
+            load_stats(conn, "player_stats", "player_id", player_id, period, path)
+        elif data_type == "offense_play_types":
+            load_play_types(conn, "player_play_types", "player_id", player_id, period, "offense", path)
+        elif data_type == "defense_play_types":
+            load_play_types(conn, "player_play_types", "player_id", player_id, period, "defense", path)
+        elif data_type == "play_types_detail":
+            load_play_types_detail(conn, "player_play_types_detail", "player_id", player_id, period, path)
+        elif data_type == "tendency_shooting":
+            load_tendency_shooting(conn, player_id, period, path)
+        elif data_type == "tendency_dribble":
+            load_tendency_dribble(conn, player_id, period, path)
+        elif data_type == "tendency_finishing":
+            load_tendency_finishing(conn, player_id, period, path)
+        elif data_type == "turnovers":
+            load_turnovers(conn, player_id, period, path)
+        elif data_type == "shot_zones_no_dribble":
+            load_shot_zones(conn, player_id, period, False, path)
+        elif data_type == "shot_zones_dribble":
+            load_shot_zones(conn, player_id, period, True, path)
+        return f"player/{safe_name}/{data_type}/{period}"
+
+    return "skip"
+
 
 def main():
-    parser = argparse.ArgumentParser(description="Load SSA JSON files into SQLite")
-    parser.add_argument("--raw-dir", default=RAW_DIR, help="Directory with JSON files")
-    parser.add_argument("--db", default=DB_PATH, help="SQLite database path")
-    parser.add_argument(
-        "--team-id", default="4f9b83f2-8209-4e04-a9bb-6fcd0a03f739",
-        help="Team UUID (used when loading player files)"
-    )
-    parser.add_argument(
-        "--season-id", default="cba189ee-e4b9-47c1-a650-437e3828160d",
-        help="Season UUID"
-    )
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", default=RAW_DIR)
+    parser.add_argument("--db", default=DB_PATH)
     args = parser.parse_args()
-
-    if not os.path.isdir(args.raw_dir):
-        print(f"Error: raw dir not found: {args.raw_dir}")
-        sys.exit(1)
 
     os.makedirs(os.path.dirname(args.db), exist_ok=True)
     conn = sqlite3.connect(args.db)
-    ensure_tables(conn)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.executescript(SCHEMA)
+    seed_static(conn)
 
-    files = sorted(glob.glob(os.path.join(args.raw_dir, "*.json")))
-    print(f"\nFound {len(files)} JSON files in {args.raw_dir}")
-    total_rows = 0
+    files = sorted(Path(args.data_dir).glob("*.json"))
+    counts: dict[str, int] = {}
+    for f in files:
+        key = process(conn, str(f))
+        counts[key] = counts.get(key, 0) + 1
 
-    for path in files:
-        name = os.path.basename(path)
-        parts = name.replace(".json", "").split("_")
-        scrape_date = parts[0] if parts else datetime.now().strftime("%Y-%m-%d")
+    conn.commit()
 
-        print(f"\n  {name}")
+    print(f"\nLoaded {len(files)} files → {args.db}\n")
+    for k, v in sorted(counts.items()):
+        mark = "✓" if not k.startswith("skip") else "·"
+        print(f"  {mark} {k}: {v}")
 
-        # ── Matches ──────────────────────────────────────────────────────────
-        if "matches" in name and "player" not in name:
-            n = load_matches_file(conn, path)
-            print(f"    → {n} matches")
-            total_rows += n
-            continue
-
-        # ── Team stats ───────────────────────────────────────────────────────
-        if "_team_" in name and "info" not in name and "matches" not in name:
-            # Infer stat_type and period from filename
-            stat_type = "overall"
-            period    = "LAST_3"
-            for st in ["additional_offense", "defensive", "play_types", "overall"]:
-                if st in name:
-                    stat_type = st
-                    break
-            for p in ["CURRENT_SEASON", "LAST_10", "LAST_5", "LAST_3", "ALL"]:
-                if p in name:
-                    period = p
-                    break
-
-            # Extract team_id from filename (between _team_ and next _)
-            try:
-                tid = name.split("_team_")[1].split("_")[0]
-            except Exception:
-                tid = args.team_id
-
-            n = load_stats_file(
-                conn, path, "team", tid, "Canada WNT",
-                tid, args.season_id, period, stat_type, scrape_date,
-            )
-            print(f"    → {n} stat rows (team {stat_type})")
-            total_rows += n
-            continue
-
-        # ── Player stats ─────────────────────────────────────────────────────
-        if "_player_" in name:
-            stat_type = "overall"
-            period    = "LAST_3"
-            for st in ["additional_offense", "defensive", "shot_chart", "play_types", "overall"]:
-                if st in name:
-                    stat_type = st
-                    break
-            for p in ["CURRENT_SEASON", "LAST_10", "LAST_5", "LAST_3", "ALL"]:
-                if p in name:
-                    period = p
-                    break
-
-            # Extract player name from filename
-            try:
-                after_player = name.split("_player_")[1]
-                player_name_raw = "_".join(after_player.split("_")[:-2])  # strip stat_type + period
-                player_name = player_name_raw.replace("_", " ").title()
-                player_id   = player_name_raw  # use name as proxy ID (real ID in JSON)
-            except Exception:
-                player_name = "Unknown"
-                player_id   = "unknown"
-
-            if stat_type == "play_types":
-                n = load_play_types_file(
-                    conn, path, player_id, player_name,
-                    args.team_id, args.season_id, period, scrape_date,
-                )
-            else:
-                n = load_stats_file(
-                    conn, path, "player", player_id, player_name,
-                    args.team_id, args.season_id, period, stat_type, scrape_date,
-                )
-            print(f"    → {n} rows ({player_name} / {stat_type})")
-            total_rows += n
-            continue
-
-        print(f"    → skipped (unrecognized pattern)")
-
-    # Summary
-    print(f"\n{'='*50}")
-    print(f"✅ Load complete. {total_rows} total rows inserted.")
-    print(f"   Database: {args.db}")
-
-    for table in ["ssa_team_stats", "ssa_player_stats", "ssa_player_play_types", "ssa_matches"]:
-        count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-        print(f"   {table}: {count} rows")
-
+    print("\nRow counts:")
+    tables = [
+        "teams", "players", "matches",
+        "team_stats", "team_play_types", "team_play_types_detail",
+        "player_stats", "player_play_types", "player_play_types_detail",
+        "player_tendency_shooting", "player_tendency_dribble", "player_tendency_finishing",
+        "player_turnovers", "player_shot_zones",
+    ]
+    for t in tables:
+        n = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
+        print(f"  {t:<35} {n:>5}")
     conn.close()
 
 
