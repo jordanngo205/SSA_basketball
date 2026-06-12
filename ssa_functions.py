@@ -37,6 +37,7 @@ BASE_URL = "https://www.strongsideanalytics.com/ssa-be/api/v1"
 class CONSTANTS:
     # Period filters — used as path segment in reporting URLs
     PERIODS = {
+        "last_1":         "LAST_1",
         "last_3":         "LAST_3",
         "last_5":         "LAST_5",
         "last_10":        "LAST_10",
@@ -128,7 +129,7 @@ def get_access_token(
     """
     resp = session.post(
         f"{BASE_URL}/auth/login",
-        json={"email": username, "password": password},
+        json={"username": username, "password": password, "grantType": "password"},
         headers={"Content-Type": "application/json", "Accept": "application/json"},
         timeout=30,
     )
@@ -203,11 +204,17 @@ def get_team_additional_offense(
     session, access_token, team_id, season_id,
     period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
 ) -> list[dict]:
-    """
-    Additional offensive metrics (shooting efficiency, shooting value, etc.).
-    Confirmed endpoint: POST /reporting/team/{teamId}/overall-additional-offensive/...
-    """
+    """Offense play-type breakdown: Set Play, Open Play (cleared by pass/dribble), Transition."""
     url = f"{BASE_URL}/reporting/team/{team_id}/overall-additional-offensive/{period}/{competition_type}"
+    return _report_post(session, access_token, url, season_id, match_ids)
+
+
+def get_team_additional_defense(
+    session, access_token, team_id, season_id,
+    period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
+) -> list[dict]:
+    """Defense play-type breakdown: Set Play, Open Play (cleared by pass/dribble), Transition."""
+    url = f"{BASE_URL}/reporting/team/{team_id}/overall-additional-defensive/{period}/{competition_type}"
     return _report_post(session, access_token, url, season_id, match_ids)
 
 
@@ -215,8 +222,8 @@ def get_team_play_types(
     session, access_token, team_id, season_id,
     period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
 ) -> list[dict]:
-    """Play-type breakdown for the team (set play, open play, transition, etc.)."""
-    url = f"{BASE_URL}/reporting/team/{team_id}/play-types/{period}/{competition_type}"
+    """Individual play-type breakdown (CUT, PNR, ISO, SPOT_UP, etc.) — offense side."""
+    url = f"{BASE_URL}/reporting/team/{team_id}/offense/{period}/{competition_type}"
     return _report_post(session, access_token, url, season_id, match_ids)
 
 
@@ -225,7 +232,7 @@ def get_team_defensive(
     period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
 ) -> list[dict]:
     """Defensive stats for the team."""
-    url = f"{BASE_URL}/reporting/team/{team_id}/defensive/{period}/{competition_type}"
+    url = f"{BASE_URL}/reporting/team/{team_id}/overall-additional-defensive/{period}/{competition_type}"
     return _report_post(session, access_token, url, season_id, match_ids)
 
 
@@ -346,11 +353,17 @@ def get_all_team_matches(
     """Fetch all pages of matches for a team."""
     all_matches, page = [], 0
     while True:
-        batch = get_team_matches(session, access_token, team_id, season_id, page, page_size)
+        data = get_team_matches(session, access_token, team_id, season_id, page, page_size)
+        if isinstance(data, dict):
+            batch = data.get("content") or data.get("result") or []
+            total_pages = data.get("totalPages", 1)
+        else:
+            batch = data
+            total_pages = 1
         if not batch:
             break
         all_matches.extend(batch)
-        if len(batch) < page_size:
+        if page >= total_pages - 1:
             break
         page += 1
     return all_matches
