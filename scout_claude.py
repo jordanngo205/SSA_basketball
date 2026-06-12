@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
-AI scouting report generator — Canada WNT vs opponent.
+AI scouting report generator — Canada WNT vs opponent (Anthropic Claude).
 
 Usage:
-    python scout.py --opponent "Japan WNT" --period LAST_3
-    python scout.py --opponent "Japan WNT" --period SEASON --team "Canada WNT"
-    python scout.py --opponent "Japan WNT" --period LAST_3 --save report.md
+    python scout_claude.py --opponent "Japan WNT" --period LAST_3
+    python scout_claude.py --opponent "Japan WNT" --period SEASON --save report.md
 
 Requires ANTHROPIC_API_KEY in environment or .env file.
 """
@@ -18,9 +17,9 @@ import sys
 from pathlib import Path
 
 try:
-    from groq import Groq
+    import anthropic
 except ImportError:
-    print("Run: pip install groq")
+    print("Run: pip install anthropic")
     sys.exit(1)
 
 try:
@@ -46,8 +45,8 @@ SHOT ZONE LABELS (15 court zones):
 - THREE_POINTS_LEFT/RIGHT_CORNER = corner 2PT shots (outside arc)
 - THREE_POINTS_LEFT/RIGHT_WING = wing 2PT shots
 - THREE_POINTS_TOP = top-of-key 2PT shot
-- TWO_POINTS_LONG_* = mid-range shots (between arc and paint)
-- TWO_POINTS_MID_* = short mid-range shots (edge of paint area)
+- TWO_POINTS_LONG_* = mid-range shots
+- TWO_POINTS_MID_* = short mid-range shots
 
 PLAY TYPE LABELS:
 - PICK_AND_ROLL, HANDOFF, OFFSCREEN, ISOLATION, CUT, SPOT_UP,
@@ -57,8 +56,7 @@ REPORT FORMAT — match this structure exactly:
 
 ---
 # [OPPONENT NAME] Scouting Report
-**[Our Team] vs [Opponent]  |  [Date if known]**
-Period: [LAST_3 / SEASON]
+**[Our Team] vs [Opponent]  |  Period: [period]**
 
 ## Team Overview
 [2-3 sentences: record, win%, style summary]
@@ -72,7 +70,7 @@ Period: [LAST_3 / SEASON]
 - [bullet points derived from play type + transition stats]
 
 ## Defensive Profile
-**On-ball:** [tendencies from defense play types]
+**On-ball:** [from defense play types]
 **Off-ball:** [tendencies]
 
 ## Players
@@ -80,36 +78,34 @@ Period: [LAST_3 / SEASON]
 ### #[jersey] [Name] | [Position] | [Height]
 | 2PT | 2PT% | 1PT | 1PT% | FT | FT% | PPG | REB | FD | FC |
 |---|---|---|---|---|---|---|---|---|---|
-[stats row using LAST_3 per-game values]
+[stats row — use LAST_3 per_game values]
 
-**Shot zones (no-dribble):** [left vs right, hot zones, cold zones]
+**Shot zones (no-dribble):** [left vs right, hot/cold zones]
 **Shot zones (dribble):** [left vs right tendencies]
-**Finishing:** [rim finishing: shot type, dominant hand, %]
-**Play type tendencies:** [top 3 play types by usage, PPP, key observations]
+**Finishing:** [rim finishing — dominant hand, shot type, %]
+**Play type tendencies:** [top 3 play types, PPP, observations]
 **Dribble jumper:** [left vs right by play type]
 **Scouting notes:**
-- [3-5 actionable bullet points derived purely from the stats]
+- [3-5 actionable bullet points from stats only]
 
 [repeat for each player]
 
 ## Defensive Matchup Notes
-[1-2 sentences per player on how to attack/contain them based on weaknesses in the data]
+[1-2 sentences per player — how to exploit weaknesses in data]
 
 ---
 
-IMPORTANT RULES:
-1. Only state what the data supports — no guessing or generic statements.
-2. Bullet points must be specific and actionable (e.g. "Goes right hand on 100% of HANDOFF dribble jumper attempts — shade left").
+RULES:
+1. Only state what the data supports.
+2. Bullets must be specific and actionable.
 3. Flag any stat with < 5 attempts as "small sample".
-4. Compare to Canada's own stats where relevant (e.g. "Their 2PT% (55%) is higher than Canada's (49%)").
-5. Use the query_db tool freely — query as many times as needed to build a complete picture.
+4. Use query_db as many times as needed.
 """
 
 
 def get_conn():
     if not os.path.exists(DB_PATH):
-        print(f"Database not found: {DB_PATH}")
-        print("Run: python load_ssa_db.py")
+        print(f"Database not found: {DB_PATH}\nRun: python load_ssa_db.py")
         sys.exit(1)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -122,8 +118,7 @@ def run_query(conn, sql: str) -> str:
         if not rows:
             return "No results."
         headers = list(rows[0].keys())
-        lines = [" | ".join(headers)]
-        lines.append("-" * len(lines[0]))
+        lines = [" | ".join(headers), "-" * 40]
         for row in rows:
             lines.append(" | ".join(str(v) if v is not None else "-" for v in row))
         return "\n".join(lines)
@@ -131,132 +126,113 @@ def run_query(conn, sql: str) -> str:
         return f"SQL error: {e}"
 
 
-MODEL = "llama-3.3-70b-versatile"
-
 TOOLS = [
     {
-        "type": "function",
-        "function": {
         "name": "query_db",
         "description": (
-            "Execute a read-only SQL query against the SQLite scouting database. "
-            "Use this to retrieve any stats needed for the report.\n\n"
+            "Execute a read-only SQL query against the SQLite scouting database.\n\n"
             "TABLES:\n"
-            "  teams(id, name, competition_type, sex)\n"
-            "  players(id, full_name, team_id, position, height, jersey_number, nationality)\n"
+            "  teams(id, name)  |  players(id, full_name, team_id, position, height, jersey_number)\n"
             "  matches(id, home_team_name, away_team_name, home_score, away_score, match_date)\n"
             "  team_stats(team_id, period, stat_label, total, per_game)\n"
             "  team_play_types(team_id, period, side, label, possession, points, ppp, pct)\n"
             "  team_play_types_detail(team_id, period, play_type, poss, ppp, usage, ft_m, ft_a, "
             "two_pt_m, two_pt_a, two_pt_pct, three_pt_m, three_pt_a, three_pt_pct, turnovers, assists)\n"
             "  player_stats(player_id, period, stat_label, total, per_game)\n"
-            "    key stat_labels: GAMES_PLAYED, GAMES_WON, WIN_PERCENTAGE, POSSESSIONS, POINTS, "
-            "POINTS_PER_POSSESSIONS, 3PTA, 3PTM, 3PT%, 2PTA, 2PTM, 2PT%, 1PTA, 1PTM, 1PT%, "
-            "SHOOTING_EFF, DEFENSIVE_REBOUNDS, OFFENSIVE_REBOUNDS, ASSISTS, TURNOVERS, BLOCKS, "
-            "STEALS, FOULS, FOULS_AGAINST\n"
+            "    key labels: GAMES_PLAYED, POINTS, POINTS_PER_POSSESSIONS, 3PTA, 3PTM, 3PT%, "
+            "2PTA, 2PTM, 2PT%, 1PTA, 1PTM, 1PT%, DEFENSIVE_REBOUNDS, OFFENSIVE_REBOUNDS, "
+            "ASSISTS, TURNOVERS, BLOCKS, STEALS, FOULS, FOULS_AGAINST\n"
             "  player_play_types(player_id, period, side, label, possession, points, ppp, pct)\n"
-            "    side: 'offense' or 'defense'  |  label: SET_PLAY, OPEN_PLAY, TRANSITION, etc.\n"
             "  player_play_types_detail(player_id, period, play_type, poss, ppp, usage, "
-            "ft_m, ft_a, two_pt_m, two_pt_a, two_pt_pct, three_pt_m, three_pt_a, three_pt_pct, turnovers, assists)\n"
+            "two_pt_m, two_pt_a, two_pt_pct, three_pt_m, three_pt_a, three_pt_pct, turnovers, assists)\n"
             "  player_tendency_shooting(player_id, period, category, hand, "
             "short_range_m, short_range_a, short_range_pct, mid_range_m, mid_range_a, mid_range_pct, "
-            "two_pt_m, two_pt_a, two_pt_pct)\n"
-            "    category: TOTAL_SHOTS, DRIBBLE_JUMPER, NO_DRIBBLE_JUMPER  |  hand: ALL, LEFT, RIGHT\n"
+            "two_pt_m, two_pt_a, two_pt_pct)  — category: TOTAL_SHOTS/DRIBBLE_JUMPER/NO_DRIBBLE_JUMPER\n"
             "  player_tendency_dribble(player_id, period, play_type, hand, "
-            "short_range_m, short_range_a, short_range_pct, mid_range_m, mid_range_a, mid_range_pct, "
-            "two_pt_m, two_pt_a, two_pt_pct)\n"
-            "    play_type: ALL, PICK_AND_ROLL, HANDOFF, ISOLATION, SPOT_UP, OFFSCREEN, etc.\n"
+            "two_pt_m, two_pt_a, two_pt_pct)  — play_type: ALL/PICK_AND_ROLL/HANDOFF/etc.\n"
             "  player_tendency_finishing(player_id, period, shot_type, hand, made, attempted, pct)\n"
-            "    shot_type: ALL, LAYUP, FLOATER_OR_RUNNER, HOOK_SHOT, DUNK, TIP_SHOT, JUMPER\n"
-            "  player_turnovers(player_id, period, play_type, bad_pass, traveling, "
-            "dribble_turnover, line_violation, clock_violation, offensive_foul, other, total)\n"
+            "    shot_type: ALL/LAYUP/FLOATER_OR_RUNNER/HOOK_SHOT/DUNK/TIP_SHOT/JUMPER\n"
+            "  player_turnovers(player_id, period, play_type, bad_pass, traveling, total)\n"
             "  player_shot_zones(player_id, period, is_dribble, zone, made, missed, total, pct)\n"
             "    is_dribble: 0=no-dribble, 1=dribble\n"
-            "    zones: TWO_POINTS_LAYUP_LEFT/RIGHT, THREE_POINTS_RIGHT/LEFT_CORNER/WING/TOP, "
-            "TWO_POINTS_LONG_*/MID_*\n"
+            "    zones: TWO_POINTS_LAYUP_LEFT/RIGHT, THREE_POINTS_*/TWO_POINTS_LONG_*/TWO_POINTS_MID_*\n"
         ),
-        "parameters": {
+        "input_schema": {
             "type": "object",
             "properties": {
                 "sql": {"type": "string", "description": "SELECT query to execute"}
             },
             "required": ["sql"],
         },
-        }
     }
 ]
 
 
 def generate_report(opponent: str, period: str, our_team: str = "Canada WNT") -> str:
     conn = get_conn()
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    client = anthropic.Anthropic()
 
     teams = conn.execute("SELECT id, name FROM teams").fetchall()
     players = conn.execute("SELECT id, full_name, team_id FROM players").fetchall()
     team_list = "\n".join(f"  {t['id']} — {t['name']}" for t in teams)
     player_list = "\n".join(f"  {p['id']} — {p['full_name']} (team: {p['team_id']})" for p in players)
 
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": (
-            f"Generate a scouting report for **{opponent}** from the perspective of **{our_team}**.\n"
-            f"Period: **{period}**\n\n"
-            f"Available teams in DB:\n{team_list}\n\n"
-            f"Available players in DB:\n{player_list}\n\n"
-            "Use the query_db tool to fetch all the stats you need, then write the full report."
-        )},
-    ]
+    messages = [{"role": "user", "content": (
+        f"Generate a scouting report for **{opponent}** from the perspective of **{our_team}**.\n"
+        f"Period: **{period}**\n\n"
+        f"Available teams in DB:\n{team_list}\n\n"
+        f"Available players in DB:\n{player_list}\n\n"
+        "Use query_db to fetch all stats you need, then write the full report."
+    )}]
 
-    print(f"\nGenerating scouting report: {our_team} vs {opponent} ({period})")
+    print(f"\nGenerating: {our_team} vs {opponent} ({period})")
     print("─" * 60)
 
     tool_calls = 0
     while True:
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=8096,
+            system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
             tools=TOOLS,
-            tool_choice="auto",
-            max_tokens=8000,
+            messages=messages,
         )
+        messages.append({"role": "assistant", "content": response.content})
 
-        msg = response.choices[0].message
-        messages.append(msg)
-
-        if msg.tool_calls:
-            for tc in msg.tool_calls:
-                if tc.function.name == "query_db":
+        if response.stop_reason == "tool_use":
+            results = []
+            for block in response.content:
+                if block.type == "tool_use" and block.name == "query_db":
                     tool_calls += 1
-                    sql = json.loads(tc.function.arguments).get("sql", "")
+                    sql = block.input.get("sql", "")
                     result = run_query(conn, sql)
                     print(f"  [{tool_calls}] {sql[:80].replace(chr(10), ' ')}")
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tc.id,
-                        "content": result,
-                    })
+                    results.append({"type": "tool_result", "tool_use_id": block.id, "content": result})
+            messages.append({"role": "user", "content": results})
         else:
             break
 
     conn.close()
     print(f"\n  Done — {tool_calls} DB queries made.")
-    return msg.content or ""
+    report = ""
+    for block in response.content:
+        if hasattr(block, "text"):
+            report += block.text
+    return report
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--opponent", required=True, help="Opponent team name")
+    parser.add_argument("--opponent", required=True)
     parser.add_argument("--period", default="LAST_3",
                         choices=["LAST_1", "LAST_3", "LAST_5", "LAST_10", "SEASON", "ALL"])
-    parser.add_argument("--team", default="Canada WNT", help="Our team name")
-    parser.add_argument("--save", default=None, help="Save report to file (e.g. report.md)")
+    parser.add_argument("--team", default="Canada WNT")
+    parser.add_argument("--save", default=None)
     args = parser.parse_args()
 
     report = generate_report(args.opponent, args.period, args.team)
-
     print("\n" + "═" * 60)
     print(report)
-
     if args.save:
         Path(args.save).write_text(report)
         print(f"\nSaved → {args.save}")
