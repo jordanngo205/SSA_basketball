@@ -1,0 +1,1045 @@
+{
+  "b8816db5-0841-4778-971c-342bef5070e6": [
+    {
+      "id": "fe2d04d5-2a12-47a0-bafc-33caefbc3958",
+      "name": "Joyce Allyson Edwards",
+      "position": "FORWARD",
+      "height": 190.0,
+      "jersey": "0"
+    },
+    {
+      "id": "2a2e84fc-82be-4239-88f5-0dc710c3f169",
+      "name": "Milaysia Mikeco Fulwiley",
+      "position": "GUARD",
+      "height": 178.0,
+      "jersey": "0"
+    },
+    {
+      "id": "eeb96f8d-d453-40a4-bd11-4e18eb237029",
+      "name": "Shakira Jade Austin",
+      "position": "CENTER",
+      "height": 196.0,
+      "jersey": "0"
+    },
+    {
+      "id": "24228b88-7b52-43f8-931f-fdd2a81219e4",
+      "name": "Nazahrah Ansaria Hillmon-Baker",
+      "position": "FORWARD",
+      "height": 188.0,
+      "jersey": "27"
+    },
+    {
+      "id": "0fb9f3e9-d2df-4a36-9abf-a25f12e00f03",
+      "name": "Allisha Gray",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "0"
+    },
+    {
+      "id": "28e4d2fb-5cf5-4b0a-a448-5ed731c9d41a",
+      "name": "Veronica Burton",
+      "position": "GUARD",
+      "height": 177.0,
+      "jersey": "0"
+    },
+    {
+      "id": "9a75e7f8-b0ca-4a89-abb1-4ce0f862110d",
+      "name": "Mikaylah Williams",
+      "position": "GUARD",
+      "height": 183.0,
+      "jersey": "12"
+    },
+    {
+      "id": "50d26c86-30d4-40b6-8e78-00205c406cdd",
+      "name": "Madison Scott",
+      "position": "FORWARD",
+      "height": 185.0,
+      "jersey": "24"
+    },
+    {
+      "id": "1f6c18df-ba3f-485d-819c-f275efc5d754",
+      "name": "Sahara Williams",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "6"
+    },
+    {
+      "id": "47f8ebc3-d094-4989-89ab-ab34f6600a9d",
+      "name": "Taylor Bigby",
+      "position": "GUARD",
+      "height": 183.0,
+      "jersey": "0"
+    }
+  ],
+  "6a552d77-b7fc-4c03-a953-5915024c0653": [
+    {
+      "id": "0a045df4-71c5-4c57-a11b-e1e36dbc020c",
+      "name": "Anzhelika Liashko",
+      "position": "FORWARD",
+      "height": 177.0,
+      "jersey": "1"
+    },
+    {
+      "id": "3f43c45b-6ddb-40d9-9f8b-3fa15176d029",
+      "name": "Kateryna Koval",
+      "position": "CENTER",
+      "height": 193.0,
+      "jersey": "2"
+    },
+    {
+      "id": "220f39fa-b168-4994-a7a8-5bec9ffd72ac",
+      "name": "Miriam Uro-Nilie",
+      "position": "CENTER",
+      "height": 188.0,
+      "jersey": "4"
+    },
+    {
+      "id": "55b366c4-7b4c-4ea3-b091-2b8ff5b9c82a",
+      "name": "Krystyna Filevych",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "0"
+    }
+  ],
+  "3b9c6007-02cb-49c5-98ff-addb6b2a4cd7": [
+    {
+      "id": "452385cf-13c4-4227-bfd3-ace511559aff",
+      "name": "Makeili Talia Ika",
+      "position": "GUARD",
+      "height": 160.0,
+      "jersey": "21"
+    },
+    {
+      "id": "fe430cc5-258b-46e4-b1aa-a875d1d0fbf8",
+      "name": "Kara-Lynne Enari",
+      "position": "FORWARD",
+      "height": 180.0,
+      "jersey": "1"
+    },
+    {
+      "id": "94884e6f-8d29-462a-8a6f-a1e0d3d72c12",
+      "name": "Lesila Kefu Finau",
+      "position": "GUARD",
+      "height": 178.0,
+      "jersey": "0"
+    },
+    {
+      "id": "a5fc5ffa-134c-47f5-b362-3479c775204b",
+      "name": "Ana Rachel Salote Fui Enari",
+      "position": "FORWARD",
+      "height": 173.0,
+      "jersey": "7"
+    }
+  ],
+  "42691cc0-cbed-4c77-9792-5f7bfee10bdb": [
+    {
+      "id": "3b9dbba0-a18d-48ab-b94f-7fc41b60eb92",
+      "name": "Supavadee Kunchuan",
+      "position": "FORWARD",
+      "height": 178.0,
+      "jersey": "8"
+    },
+    {
+      "id": "5c464e26-dad0-4611-88ff-2807e6f0ee93",
+      "name": "Sroifa Phetnin",
+      "position": "FORWARD",
+      "height": 170.0,
+      "jersey": "10"
+    },
+    {
+      "id": "e55683df-fd41-46ad-9b9c-d0bf73b557a6",
+      "name": "Kanokwan Prajuapsook",
+      "position": "CENTER",
+      "height": 177.0,
+      "jersey": "39"
+    },
+    {
+      "id": "a9a9c931-bdda-4421-a7ab-216acded7687",
+      "name": "Sasiporn Wongtapha",
+      "position": "FORWARD",
+      "height": 165.0,
+      "jersey": "25"
+    }
+  ],
+  "046a5515-5070-41e3-9fd0-75227a6aa685": [
+    {
+      "id": "f195797e-f9fb-4f02-9f4a-c19a29b40535",
+      "name": "Gracia Alonso De Armi\u00f1o",
+      "position": "FORWARD",
+      "height": 180.0,
+      "jersey": "44"
+    },
+    {
+      "id": "722337e1-7e9c-48af-8f6a-27c0369ef00c",
+      "name": "Vega Gimeno",
+      "position": "FORWARD",
+      "height": 186.0,
+      "jersey": "11"
+    },
+    {
+      "id": "c1fbe384-ad07-4e1c-a758-0119e86e2a25",
+      "name": "Sandra Ygueravide",
+      "position": "GUARD",
+      "height": 172.0,
+      "jersey": "13"
+    },
+    {
+      "id": "7e27a581-e4f9-4599-9449-c52d9c98407b",
+      "name": "Juana Camilion",
+      "position": "GUARD",
+      "height": 180.0,
+      "jersey": "22"
+    },
+    {
+      "id": "7770cafa-66dd-47a8-99a2-2593329079d4",
+      "name": "Ainhoa Gervasini",
+      "position": "GUARD",
+      "height": 179.0,
+      "jersey": "00"
+    },
+    {
+      "id": "d40d14d4-51bb-46e0-b912-4ca08055836e",
+      "name": "Cecilia Muhate",
+      "position": "CENTER",
+      "height": 188.0,
+      "jersey": "33"
+    },
+    {
+      "id": "e033d1f6-4b2f-4e41-bcb3-a4b1a879c4f8",
+      "name": "Alba Prieto",
+      "position": "FORWARD",
+      "height": 180.0,
+      "jersey": "4"
+    },
+    {
+      "id": "8cce2561-8415-4bef-b92f-b6db3739b242",
+      "name": "Txell Alarc\u00f3n Otero",
+      "position": "GUARD",
+      "height": 180.0,
+      "jersey": "0"
+    }
+  ],
+  "3bb07645-5f87-4af8-96ea-d9dea30ea768": [
+    {
+      "id": "3f3b5842-bd54-4d11-ad38-3b387c851701",
+      "name": "Lydia Ang Zi Yi",
+      "position": "FORWARD",
+      "height": 172.0,
+      "jersey": "7"
+    },
+    {
+      "id": "af96c3ca-f1fe-4fe2-b97d-f4c6627d386c",
+      "name": "Jermaine Lim Jia Ying",
+      "position": "GUARD",
+      "height": 168.0,
+      "jersey": "27"
+    },
+    {
+      "id": "6767eeb1-a27d-4e16-a5d1-30d105186bd6",
+      "name": "XingYue Han",
+      "position": "FORWARD",
+      "height": 180.0,
+      "jersey": "11"
+    },
+    {
+      "id": "517ba9c3-8879-4f73-bb00-fb19153c2d2b",
+      "name": "Lai Hor Ying Matilda",
+      "position": "FORWARD",
+      "height": 180.0,
+      "jersey": "5"
+    }
+  ],
+  "3a6e3e1f-4b38-401a-9847-3b855d1c523e": [
+    {
+      "id": "f3a15901-f814-478c-9e58-eb1907e323a3",
+      "name": "Klaudia Gertchen",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "15"
+    },
+    {
+      "id": "fdffb9fa-cc64-4863-b856-83884d661a54",
+      "name": "Anna Paw\u0142owska",
+      "position": "GUARD",
+      "height": 170.0,
+      "jersey": "4"
+    },
+    {
+      "id": "cf864059-a1e5-4eeb-bb03-59eccfb57694",
+      "name": "Weronika Telenga",
+      "position": "CENTER",
+      "height": 192.0,
+      "jersey": "33"
+    },
+    {
+      "id": "d27f3749-5718-420d-8132-4af71639cae5",
+      "name": "Aleksandra Zi\u0119mborska",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "0"
+    }
+  ],
+  "6f7db5e9-3a21-49e2-90b9-b0ae6f19d85a": [
+    {
+      "id": "3c447184-731d-4907-b316-901a376125ad",
+      "name": "Mikka Cacho",
+      "position": "GUARD",
+      "height": 171.0,
+      "jersey": "0"
+    },
+    {
+      "id": "6367d774-2c4e-4c0a-8dc8-25aa340e30a0",
+      "name": "Kacey Dela Rosa",
+      "position": "CENTER",
+      "height": 183.0,
+      "jersey": "28"
+    },
+    {
+      "id": "c6d78ac0-0995-4652-87c7-775cec5f0e55",
+      "name": "Afril Bernardino",
+      "position": "GUARD",
+      "height": 173.0,
+      "jersey": "13"
+    },
+    {
+      "id": "4b8ba29a-d0ce-4026-a5bf-f439846cb305",
+      "name": "Cheska Apag",
+      "position": "GUARD",
+      "height": 164.0,
+      "jersey": "23"
+    },
+    {
+      "id": "6f6741ab-5f0a-4b6b-b7a4-1ad14955240b",
+      "name": "Reynalyn Ferrer",
+      "position": "GUARD",
+      "height": 174.0,
+      "jersey": "26"
+    },
+    {
+      "id": "affc34eb-96bd-4703-b619-f6079641a620",
+      "name": "Camille Clarin",
+      "position": "FORWARD",
+      "height": 176.0,
+      "jersey": "0"
+    }
+  ],
+  "328105c2-3bdb-44ed-b4de-35d4bc19d4ce": [
+    {
+      "id": "8b78ee98-33ba-4f4d-b3cf-aedabd702e91",
+      "name": "Azure Luseane Anderson",
+      "position": "FORWARD",
+      "height": 178.0,
+      "jersey": "38"
+    },
+    {
+      "id": "fc50f5d6-f7fc-48cd-8d58-62eea2c8afe7",
+      "name": "Gabriella Fotu",
+      "position": "GUARD",
+      "height": 176.0,
+      "jersey": "42"
+    },
+    {
+      "id": "aa3dd0b9-9a92-409e-b573-56beeb09a398",
+      "name": "Eva Sydney Langton",
+      "position": "FORWARD",
+      "height": 185.0,
+      "jersey": "10"
+    },
+    {
+      "id": "ac6a0d8c-f3d8-4bf6-9899-3bdfca84bcad",
+      "name": "Sharne Pupuke-Robati",
+      "position": "FORWARD",
+      "height": 184.0,
+      "jersey": "11"
+    }
+  ],
+  "3a5f28b3-ac81-45e9-bc3c-35b579d9b3b1": [
+    {
+      "id": "b1207a57-3857-4233-998b-b3e39ae87e9e",
+      "name": "Janis Boonstra",
+      "position": "FORWARD",
+      "height": 183.0,
+      "jersey": "33"
+    },
+    {
+      "id": "2ffa038a-8a50-4aee-9098-df4157baae45",
+      "name": "Noortje Driessen",
+      "position": "GUARD",
+      "height": 182.0,
+      "jersey": "4"
+    },
+    {
+      "id": "beae6417-4490-4ab7-8078-97c42d18324b",
+      "name": "Ilse Kuijt",
+      "position": "GUARD",
+      "height": 180.0,
+      "jersey": "17"
+    },
+    {
+      "id": "09f00921-8be7-4688-b30c-d679e9a9f3db",
+      "name": "Evelien Lutje Schipholt",
+      "position": "FORWARD",
+      "height": 186.0,
+      "jersey": "24"
+    },
+    {
+      "id": "f8d7075c-e32a-4fe6-8489-e8958997e6db",
+      "name": "Zo\u00eb Slagter",
+      "position": "FORWARD",
+      "height": 186.0,
+      "jersey": "44"
+    },
+    {
+      "id": "9abc25bd-2eab-4e5f-bc7b-ae1a5edc58ea",
+      "name": "Lotte van Kruistum",
+      "position": "FORWARD",
+      "height": 183.0,
+      "jersey": "15"
+    }
+  ],
+  "f62d2ae1-3f7f-45d9-b56f-2f06ddcd1960": [
+    {
+      "id": "cc6b4edd-d1c7-43c9-ae95-8ede7ebac72f",
+      "name": "Hui Pin Pang",
+      "position": "FORWARD",
+      "height": 175.0,
+      "jersey": "23"
+    },
+    {
+      "id": "438aa084-144d-44c6-9218-9b2ab01c8914",
+      "name": "Suet Ying Foo",
+      "position": "FORWARD",
+      "height": 176.0,
+      "jersey": "24"
+    },
+    {
+      "id": "e74bd608-bd42-4800-a4ec-818df4990816",
+      "name": "SinJie Tan",
+      "position": "GUARD",
+      "height": 168.0,
+      "jersey": "9"
+    },
+    {
+      "id": "e7b34be1-332b-4be6-b344-4d2f7be978fa",
+      "name": "Fook Yee Yap",
+      "position": "FORWARD",
+      "height": 172.0,
+      "jersey": "35"
+    }
+  ],
+  "40348f63-1717-4bc1-8dd6-7c13f6d60185": [
+    {
+      "id": "b288bd5e-1721-47ef-8623-2da46b35b51c",
+      "name": "Sydonie Andriamihajanirina",
+      "position": "FORWARD",
+      "height": 176.0,
+      "jersey": "17"
+    },
+    {
+      "id": "6dd4d35d-a01e-4998-b7ec-6e96ac08a93f",
+      "name": "Minaoharisoa Christiane Jaofera",
+      "position": "GUARD",
+      "height": 168.0,
+      "jersey": "7"
+    },
+    {
+      "id": "3e0c7f5c-1027-480e-9135-aa36925a667f",
+      "name": "Ravaka Randriatahiana",
+      "position": "GUARD",
+      "height": 171.0,
+      "jersey": "10"
+    },
+    {
+      "id": "1441145f-c1f9-4899-99e2-d274c2e01497",
+      "name": "Tokin'Iaina Sambatrarimiora",
+      "position": "GUARD",
+      "height": 168.0,
+      "jersey": "0"
+    },
+    {
+      "id": "2119d33e-c7a2-48f1-933b-0137a1446e99",
+      "name": "Harisoa Muriel Hajanirina",
+      "position": "GUARD",
+      "height": 175.0,
+      "jersey": "1"
+    }
+  ],
+  "73b17301-dca8-49e0-95d7-2da7d0adc111": [
+    {
+      "id": "20a9398f-c46f-45bd-801e-0f239f926009",
+      "name": "Gabriele Sulske",
+      "position": "GUARD",
+      "height": 177.0,
+      "jersey": "0"
+    },
+    {
+      "id": "f2c096c3-a288-4fb1-8dde-0ae2e721b590",
+      "name": "Justina Miknaite",
+      "position": "FORWARD",
+      "height": 179.0,
+      "jersey": "0"
+    },
+    {
+      "id": "86648256-e9a7-49e5-82a8-75215f516bfb",
+      "name": "Kamile Nacickaite-van der Horst",
+      "position": "FORWARD",
+      "height": 181.0,
+      "jersey": "0"
+    },
+    {
+      "id": "3f94c747-49e9-48a0-8ac9-0868d9454748",
+      "name": "Giedre Labuckiene",
+      "position": "CENTER",
+      "height": 192.0,
+      "jersey": "0"
+    },
+    {
+      "id": "d2c81eb8-a133-4743-885f-8bb47179a77c",
+      "name": "Martyna Petrenaite",
+      "position": "FORWARD",
+      "height": 181.0,
+      "jersey": "6"
+    }
+  ],
+  "4fdd141d-26c2-47e9-9d7f-4f4fab660511": [
+    {
+      "id": "1bdc729c-dd9b-499d-8e0c-74418f1a9f14",
+      "name": "Paula Mauri\u0146a",
+      "position": "FORWARD",
+      "height": 185.0,
+      "jersey": "11"
+    },
+    {
+      "id": "e36bce9f-bef2-490b-8bac-726fbdf97664",
+      "name": "Marta Mi\u0161\u010denko",
+      "position": "CENTER",
+      "height": 193.0,
+      "jersey": "13"
+    },
+    {
+      "id": "76978ed1-b3b6-4f4b-b0e0-49f858b5375c",
+      "name": "Digna Strautmane",
+      "position": "FORWARD",
+      "height": 188.0,
+      "jersey": "45"
+    },
+    {
+      "id": "05fd16bf-dbb3-47b1-8a27-0567626eacaf",
+      "name": "Ketija Vihmane",
+      "position": "GUARD",
+      "height": 176.0,
+      "jersey": "6"
+    },
+    {
+      "id": "fccc1da5-1968-4c91-a3a4-472548f1d320",
+      "name": "Paula Cir\u0161a",
+      "position": "GUARD",
+      "height": 174.0,
+      "jersey": "0"
+    }
+  ],
+  "08f0ebb6-7a72-4900-b0f5-50f86a90d25f": [
+    {
+      "id": "e4ce51e9-d7ce-4fb1-8ad3-0cb944bef51c",
+      "name": "Tamila Zhakipova",
+      "position": "CENTER",
+      "height": 182.0,
+      "jersey": "3"
+    },
+    {
+      "id": "c5f40ad0-e0aa-45da-a3fd-2c0e8ff6fa7c",
+      "name": "Ulyana Kudryavtseva",
+      "position": "GUARD",
+      "height": 176.0,
+      "jersey": "33"
+    },
+    {
+      "id": "b21161b9-bad2-45da-9e5a-8c53404d670a",
+      "name": "Shugyla Kemel",
+      "position": "GUARD",
+      "height": 170.0,
+      "jersey": "11"
+    },
+    {
+      "id": "015a1965-28c2-4296-b073-2c67020bf615",
+      "name": "Dilnaz Yerkebay",
+      "position": "GUARD",
+      "height": 179.0,
+      "jersey": "2"
+    }
+  ],
+  "971c6a0d-e3b0-495e-9b3e-2f8d9697a1dc": [
+    {
+      "id": "b4f59711-6d62-483a-9a3d-42b9d04672ca",
+      "name": "Miku Takahashi",
+      "position": "GUARD",
+      "height": 169.0,
+      "jersey": "7"
+    },
+    {
+      "id": "ba5973b7-2995-4f29-bde8-84a2ee46308c",
+      "name": "Aya Tsurumi",
+      "position": "GUARD",
+      "height": 165.0,
+      "jersey": "5"
+    },
+    {
+      "id": "f88fb384-2190-47f1-b67a-810b7e892dd8",
+      "name": "Sakura Noguchi",
+      "position": "FORWARD",
+      "height": 181.0,
+      "jersey": "13"
+    },
+    {
+      "id": "4522d251-f1b9-4b1b-af52-21530406d650",
+      "name": "Momoka Hanashima",
+      "position": "FORWARD",
+      "height": 178.0,
+      "jersey": "0"
+    },
+    {
+      "id": "97a05278-e097-43ce-a324-fbd54350e767",
+      "name": "Aoi Katsura",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "25"
+    },
+    {
+      "id": "fca7ceec-fe0f-47ee-ba2f-c78fefe316df",
+      "name": "Kiho Miyashita",
+      "position": "FORWARD",
+      "height": 178.0,
+      "jersey": "18"
+    }
+  ],
+  "37960566-a7c7-40f1-b508-cac124ffada6": [
+    {
+      "id": "78f269ae-f7d6-4924-a462-59cd950e8ac0",
+      "name": "Beatrice Noemi Caloro",
+      "position": "GUARD",
+      "height": 175.0,
+      "jersey": "8"
+    },
+    {
+      "id": "2ebca03a-d856-4215-abb5-b8e7aa2f9d6f",
+      "name": "Caterina Gilli",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "18"
+    },
+    {
+      "id": "614b801f-c43d-46a3-a4dd-89da54c64c8e",
+      "name": "Giorgia Palmieri",
+      "position": "GUARD",
+      "height": 165.0,
+      "jersey": "22"
+    },
+    {
+      "id": "8f5d7729-5f6c-40c5-b4fe-bec11f90c36b",
+      "name": "Maria Miccoli",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "0"
+    }
+  ],
+  "b0e6fbb1-b85d-4487-8c73-7148689e50a2": [
+    {
+      "id": "e894f72f-15d3-470f-a63f-437077f345fb",
+      "name": "Tamara Szerencs\u00e9s",
+      "position": "GUARD",
+      "height": 175.0,
+      "jersey": "17"
+    },
+    {
+      "id": "cc9165bd-cf41-4c96-8fc1-65d29f077e4a",
+      "name": "Mia David",
+      "position": "FORWARD",
+      "height": 180.0,
+      "jersey": "18"
+    },
+    {
+      "id": "4c3b4926-8cca-4075-80d2-7b2ddc304858",
+      "name": "Franka Toth",
+      "position": "FORWARD",
+      "height": 187.0,
+      "jersey": "24"
+    },
+    {
+      "id": "e8905b92-8a79-49e9-ae47-36da8decf2fe",
+      "name": "Vivi B\u00f6r\u00f6ndy",
+      "position": "GUARD",
+      "height": 175.0,
+      "jersey": "44"
+    },
+    {
+      "id": "165306ed-824e-4990-ac2d-f2f74a59b3fb",
+      "name": "Klaudia Papp",
+      "position": "GUARD",
+      "height": 168.0,
+      "jersey": "10"
+    },
+    {
+      "id": "3a2c325a-3165-4f14-b918-bf9edb251ce6",
+      "name": "Vir\u00e1g Kiss",
+      "position": "CENTER",
+      "height": 195.0,
+      "jersey": "2"
+    },
+    {
+      "id": "a40c310e-2e43-4361-a07c-211cec7b3d81",
+      "name": "R\u00e9ka Lelik",
+      "position": "GUARD",
+      "height": 181.0,
+      "jersey": "0"
+    }
+  ],
+  "3fab0dc3-0e6c-4371-bfda-b92dfb91e601": [
+    {
+      "id": "5131041e-c8fc-44e1-9c1f-d1effe001c18",
+      "name": "Ama Degbeon",
+      "position": "CENTER",
+      "height": 188.0,
+      "jersey": "25"
+    },
+    {
+      "id": "c8e9b09d-5632-4c3f-b767-8487454e2d3a",
+      "name": "Laura Zolper",
+      "position": "GUARD",
+      "height": 170.0,
+      "jersey": "4"
+    },
+    {
+      "id": "01ad43b5-7b8b-46a3-b45f-650bafa05a2b",
+      "name": "Marie Reichert",
+      "position": "FORWARD",
+      "height": 188.0,
+      "jersey": "0"
+    },
+    {
+      "id": "370db7af-bb54-4161-9736-8dc35701cbf7",
+      "name": "Britta Christin Daub",
+      "position": "GUARD",
+      "height": 177.0,
+      "jersey": "0"
+    }
+  ],
+  "99909fac-ccfa-45c4-b2fd-6e8a6f896a2b": [
+    {
+      "id": "4f858f93-bca4-470e-992d-a8087e7b5923",
+      "name": "Hortense Limouzin",
+      "position": "GUARD",
+      "height": 166.0,
+      "jersey": "3"
+    },
+    {
+      "id": "8de66ad3-36d9-4df3-97ac-582b31a730ae",
+      "name": "Marie Michelle Milapie",
+      "position": "CENTER",
+      "height": 191.0,
+      "jersey": "13"
+    },
+    {
+      "id": "24555ecd-8aa0-4752-b46a-2798014148f3",
+      "name": "Laetitia Guapo",
+      "position": "GUARD",
+      "height": 183.0,
+      "jersey": "12"
+    },
+    {
+      "id": "96757144-37b7-4c19-9942-cea90533853f",
+      "name": "Marie Man\u00e9",
+      "position": "GUARD",
+      "height": 184.0,
+      "jersey": "1"
+    }
+  ],
+  "40a6d73b-4fb5-4ad6-8a36-84b06c44c0e2": [
+    {
+      "id": "ffe47a2e-dfe5-448a-b1ce-50baa906779b",
+      "name": "Raneem Mohamed",
+      "position": "FORWARD",
+      "height": 185.0,
+      "jersey": "15"
+    },
+    {
+      "id": "457e78d4-0803-4db6-b683-be1ce62e5d5b",
+      "name": "Hala ElShaarawy",
+      "position": "FORWARD",
+      "height": 184.0,
+      "jersey": "23"
+    },
+    {
+      "id": "f94bd782-2e9e-456d-895f-7d5e7c977898",
+      "name": "Nadine Selaawy",
+      "position": "CENTER",
+      "height": 190.0,
+      "jersey": "7"
+    },
+    {
+      "id": "ba105a1e-4d92-4642-bedf-2a4b9e67c84c",
+      "name": "Soraya Mohamed",
+      "position": "GUARD",
+      "height": 173.0,
+      "jersey": "8"
+    }
+  ],
+  "f154074e-9dcd-4584-9ee9-558ae3ebc548": [
+    {
+      "id": "4ce94f10-24d1-4f55-b859-f89037ec12d0",
+      "name": "Lucie Svato\u0148ov\u00e1",
+      "position": "GUARD",
+      "height": 185.0,
+      "jersey": "4"
+    },
+    {
+      "id": "e3de9e45-bc2d-4aba-96c2-ee04e8fffcc4",
+      "name": "Monika Fu\u010d\u00edkova",
+      "position": "GUARD",
+      "height": 180.0,
+      "jersey": "24"
+    },
+    {
+      "id": "a8579cb9-f4ce-466a-b440-26151271f753",
+      "name": "Kate\u0159ina Gal\u00ed\u010dkov\u00e1",
+      "position": "GUARD",
+      "height": 183.0,
+      "jersey": "3"
+    },
+    {
+      "id": "b3f769db-1d7b-4c1b-9a81-d5be9ef49e8f",
+      "name": "Anna Rylichov\u00e1",
+      "position": "FORWARD",
+      "height": 179.0,
+      "jersey": "14"
+    },
+    {
+      "id": "6ffb6571-2742-4c83-a7aa-e2d7465ad202",
+      "name": "Karolina Sotolova",
+      "position": "GUARD",
+      "height": 175.0,
+      "jersey": "9"
+    }
+  ],
+  "67d2aafb-a13b-4b76-9e7d-43a71b86744d": [
+    {
+      "id": "288128ce-0153-4fd3-aa59-d842fe94f036",
+      "name": "Chun-Hsi Chiu",
+      "position": "GUARD",
+      "height": 171.0,
+      "jersey": "0"
+    },
+    {
+      "id": "dd511aa9-dd75-45b6-aaf6-e1b213172a44",
+      "name": "Chen-I Li",
+      "position": "FORWARD",
+      "height": 172.0,
+      "jersey": "7"
+    },
+    {
+      "id": "1485d210-608b-4cac-ad0f-2956fddeb3bf",
+      "name": "Yu-Tsz Lee",
+      "position": "FORWARD",
+      "height": 177.0,
+      "jersey": "7"
+    },
+    {
+      "id": "573ef97e-61ab-4ac2-b898-1c82549192ba",
+      "name": "Yu Min Chang",
+      "position": "GUARD",
+      "height": 174.0,
+      "jersey": "23"
+    }
+  ],
+  "50350730-033f-484a-8d0b-b273734f8765": [
+    {
+      "id": "24980a68-18d8-40db-b957-5a29f1a61748",
+      "name": "ZhiTing Zhang",
+      "position": "CENTER",
+      "height": 195.0,
+      "jersey": "10"
+    },
+    {
+      "id": "0f2d0f82-b89e-4ac9-847f-d3a8100692d7",
+      "name": "A Ganajing",
+      "position": "GUARD",
+      "height": 170.0,
+      "jersey": "0"
+    },
+    {
+      "id": "98da1107-922f-4087-a02f-0b162c47ff73",
+      "name": "Wanglai Zhang",
+      "position": "GUARD",
+      "height": 177.0,
+      "jersey": "22"
+    },
+    {
+      "id": "11a853f0-0557-40ae-9e86-722ce3b599da",
+      "name": "JianPing Zhang",
+      "position": "CENTER",
+      "height": 189.0,
+      "jersey": "0"
+    },
+    {
+      "id": "edccd560-39d3-4c1a-bda1-2d9bbf98bc26",
+      "name": "Wenxia Li",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "21"
+    },
+    {
+      "id": "0cd46067-6abb-467b-874a-b69a7f19cc51",
+      "name": "Yuyan Li",
+      "position": "GUARD",
+      "height": 185.0,
+      "jersey": "25"
+    },
+    {
+      "id": "61c846b4-20d3-4eed-8d4c-fdadecef0558",
+      "name": "Lili Wang",
+      "position": "GUARD",
+      "height": 175.0,
+      "jersey": "23"
+    }
+  ],
+  "4f9b83f2-8209-4e04-a9bb-6fcd0a03f739": [
+    {
+      "id": "d29fd8da-3ead-4c41-aa12-b496fb0debe9",
+      "name": "Paige Crozon",
+      "position": "GUARD",
+      "height": 185.0,
+      "jersey": "7"
+    },
+    {
+      "id": "f532294f-8e69-4cbb-be69-7fa1cd6189b5",
+      "name": "Katherine Plouffe",
+      "position": "FORWARD",
+      "height": 192.0,
+      "jersey": "2"
+    },
+    {
+      "id": "d9c544b9-cb4d-4280-9bef-6b1102fc7b2a",
+      "name": "Kacie Bosch",
+      "position": "GUARD",
+      "height": 175.0,
+      "jersey": "4"
+    },
+    {
+      "id": "9f9a4068-97fb-4bd2-a865-0c354c533f4d",
+      "name": "Saicha Grant-Allen",
+      "position": "CENTER",
+      "height": 196.0,
+      "jersey": "77"
+    },
+    {
+      "id": "2b6dc75e-dd80-4324-9737-8bc4a0859ce8",
+      "name": "Tara Wallack",
+      "position": "GUARD",
+      "height": 187.0,
+      "jersey": "7"
+    }
+  ],
+  "80a6620f-75c6-446a-b614-bda3f0634167": [
+    {
+      "id": "2645ad82-d76b-4cd0-a533-5e760c541d33",
+      "name": "Luana de Souza",
+      "position": "GUARD",
+      "height": 177.0,
+      "jersey": "3"
+    },
+    {
+      "id": "fd09cc4b-8815-472c-9edd-4e0fc2af0bc6",
+      "name": "Kawanni Silva",
+      "position": "CENTER",
+      "height": 190.0,
+      "jersey": "21"
+    },
+    {
+      "id": "35bef0da-8097-4807-9c0f-f53a88745740",
+      "name": "Gabriela Guimar\u00e3es",
+      "position": "FORWARD",
+      "height": 180.0,
+      "jersey": "13"
+    },
+    {
+      "id": "b4a03dfe-4c16-49ff-9603-1b4990aa115a",
+      "name": "Gabriella D\u2019Arrigo",
+      "position": "FORWARD",
+      "height": 180.0,
+      "jersey": "8"
+    }
+  ],
+  "004d1ca1-8b5c-48e8-9a20-e4249c22257c": [
+    {
+      "id": "6841eeca-1fb5-46b8-bf3c-a53ed1bc1af2",
+      "name": "Arica Carter",
+      "position": "GUARD",
+      "height": 173.0,
+      "jersey": "23"
+    },
+    {
+      "id": "9cd8efd3-2024-4b2e-b79b-b37242a3f556",
+      "name": "Tatyana Deniskina",
+      "position": "GUARD",
+      "height": 172.0,
+      "jersey": "7"
+    },
+    {
+      "id": "dec4a635-07b8-4ce8-9cac-d5b7448c8b9e",
+      "name": "Brianna Fraser",
+      "position": "FORWARD",
+      "height": 186.0,
+      "jersey": "34"
+    },
+    {
+      "id": "16be94aa-a2d3-418c-b6cb-7b0ff6bb801c",
+      "name": "Alexandra Mollenhauer",
+      "position": "FORWARD",
+      "height": 182.0,
+      "jersey": "24"
+    },
+    {
+      "id": "571ff775-be26-480e-a7f6-e14f05725146",
+      "name": "Dina Ulyanova",
+      "position": "FORWARD",
+      "height": 185.0,
+      "jersey": "8"
+    }
+  ],
+  "9c7dae40-61a3-40ff-8365-4ee22d2be0c7": [
+    {
+      "id": "82483a74-e536-4da6-ba8f-feac1caa06d9",
+      "name": "Sina Elke H\u00f6llerl",
+      "position": "GUARD",
+      "height": 185.0,
+      "jersey": "6"
+    },
+    {
+      "id": "3f8962fe-9d5b-41b2-bb45-8fb520915013",
+      "name": "Rebekka Kalaydjiev",
+      "position": "GUARD",
+      "height": 172.0,
+      "jersey": "32"
+    },
+    {
+      "id": "95584c52-adf8-4a25-b3a6-0873223735c9",
+      "name": "Anja Fuchs-Robetin",
+      "position": "FORWARD",
+      "height": 183.0,
+      "jersey": "8"
+    },
+    {
+      "id": "b919550f-1b31-4ad8-880f-e05554b11065",
+      "name": "Sigrid Koizar",
+      "position": "GUARD",
+      "height": 173.0,
+      "jersey": "42"
+    },
+    {
+      "id": "5a41b4a9-c245-4550-a3d9-aef62cf5e9d3",
+      "name": "Alexia Allesch",
+      "position": "FORWARD",
+      "height": 187.0,
+      "jersey": "10"
+    }
+  ]
+}
