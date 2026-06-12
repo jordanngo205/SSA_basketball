@@ -15,16 +15,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_DIR  = os.path.join(BASE_DIR, "data", "raw")
 DB_PATH  = os.path.join(BASE_DIR, "data", "db", "ssa.db")
 
-CANADA_WNT_ID = "4f9b83f2-8209-4e04-a9bb-6fcd0a03f739"
-
-PLAYER_NAME_TO_ID = {
-    "Paige_Crozon":       "d29fd8da-3ead-4c41-aa12-b496fb0debe9",
-    "Katherine_Plouffe":  "f532294f-8e69-4cbb-be69-7fa1cd6189b5",
-    "Kacie_Bosch":        "d9c544b9-cb4d-4280-9bef-6b1102fc7b2a",
-    "Saicha_Grant-Allen": "9f9a4068-97fb-4bd2-a865-0c354c533f4d",
-    "Tara_Wallack":       "2b6dc75e-dd80-4324-9737-8bc4a0859ce8",
-}
-
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS teams (
     id TEXT PRIMARY KEY,
@@ -244,7 +234,7 @@ def _shooting_vals(values):
 
 
 def load_team_info(conn, path):
-    d = json.load(open(path))
+    d = json.loads(Path(path).read_text(encoding="utf-8"))
     upsert(conn, "teams", {
         "id": d["id"], "name": d.get("name"),
         "competition_type": d.get("competitionType"),
@@ -254,7 +244,7 @@ def load_team_info(conn, path):
 
 
 def load_matches(conn, path):
-    for m in json.load(open(path)):
+    for m in json.loads(Path(path).read_text(encoding="utf-8")):
         upsert(conn, "matches", {
             "id": m.get("id"), "season_id": m.get("seasonId"),
             "season_name": m.get("seasonName"),
@@ -266,7 +256,7 @@ def load_matches(conn, path):
 
 
 def load_stats(conn, table, id_col, entity_id, period, path):
-    for item in json.load(open(path)):
+    for item in json.loads(Path(path).read_text(encoding="utf-8")):
         v = item.get("values", {})
         upsert(conn, table, {
             id_col: entity_id, "period": period,
@@ -276,7 +266,7 @@ def load_stats(conn, table, id_col, entity_id, period, path):
 
 
 def load_play_types(conn, table, id_col, entity_id, period, side, path):
-    for item in json.load(open(path)):
+    for item in json.loads(Path(path).read_text(encoding="utf-8")):
         v = item.get("values", {})
         upsert(conn, table, {
             id_col: entity_id, "period": period, "side": side,
@@ -287,7 +277,7 @@ def load_play_types(conn, table, id_col, entity_id, period, side, path):
 
 
 def load_play_types_detail(conn, table, id_col, entity_id, period, path):
-    for item in json.load(open(path)):
+    for item in json.loads(Path(path).read_text(encoding="utf-8")):
         v = item.get("values", {})
         upsert(conn, table, {
             id_col: entity_id, "period": period, "play_type": item["label"],
@@ -309,7 +299,7 @@ def load_tendency_shooting(conn, player_id, period, path):
         [2] FROM_LEFT/RIGHT_HAND → hand=LEFT/RIGHT
       [1] NO_DRIBBLE_JUMPER → category=NO_DRIBBLE_JUMPER, hand=ALL
     """
-    data = json.load(open(path))
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
     current_cat = "TOTAL_SHOTS"
     for item in data:
         label, level = item["label"], item["level"]
@@ -337,7 +327,7 @@ def load_tendency_dribble(conn, player_id, period, path):
         [2] FROM_LEFT/RIGHT → play_type=PICK_AND_ROLL, hand=LEFT/RIGHT
       ...
     """
-    data = json.load(open(path))
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
     current_pt = "ALL"
     for item in data:
         label, level = item["label"], item["level"]
@@ -364,7 +354,7 @@ def load_tendency_finishing(conn, player_id, period, path):
       [1] LAYUP / FLOATER_OR_RUNNER / HOOK_SHOT / DUNK / TIP_SHOT / JUMPER
         [2] FROM_LEFT/RIGHT_HAND
     """
-    data = json.load(open(path))
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
     current_shot = "ALL"
     for item in data:
         label, level = item["label"], item["level"]
@@ -384,7 +374,7 @@ def load_tendency_finishing(conn, player_id, period, path):
 
 
 def load_turnovers(conn, player_id, period, path):
-    for item in json.load(open(path)):
+    for item in json.loads(Path(path).read_text(encoding="utf-8")):
         v = item.get("values", {})
         upsert(conn, "player_turnovers", {
             "player_id": player_id, "period": period, "play_type": item["label"],
@@ -398,7 +388,7 @@ def load_turnovers(conn, player_id, period, path):
 
 
 def load_shot_zones(conn, player_id, period, is_dribble, path):
-    for item in json.load(open(path)):
+    for item in json.loads(Path(path).read_text(encoding="utf-8")):
         v = item.get("values", {})
         upsert(conn, "player_shot_zones", {
             "player_id": player_id, "period": period,
@@ -409,33 +399,11 @@ def load_shot_zones(conn, player_id, period, is_dribble, path):
         })
 
 
-def seed_static(conn):
-    upsert(conn, "teams", {
-        "id": CANADA_WNT_ID, "name": "Canada WNT",
-        "competition_type": "NATIONAL_TEAMS", "sex": "FEMALE",
-        "game_type": "THREE_X_THREE", "city": "Ottawa", "country_id": "CA",
-    })
-    for safe_name, pid in PLAYER_NAME_TO_ID.items():
-        pos_map = {"Paige_Crozon": "GUARD", "Katherine_Plouffe": "FORWARD",
-                   "Kacie_Bosch": "GUARD", "Saicha_Grant-Allen": "FORWARD",
-                   "Tara_Wallack": "GUARD"}
-        jersey_map = {"Paige_Crozon": "7", "Katherine_Plouffe": "2"}
-        height_map = {"Paige_Crozon": 185, "Katherine_Plouffe": 192}
-        upsert(conn, "players", {
-            "id": pid, "full_name": safe_name.replace("_", " "),
-            "team_id": CANADA_WNT_ID,
-            "position": pos_map.get(safe_name),
-            "height": height_map.get(safe_name),
-            "jersey_number": jersey_map.get(safe_name, ""),
-            "nationality": "CA",
-        })
-
-
 PERIOD_RE = r"(LAST_\d+|SEASON|ALL)$"
 TEAM_ID_RE = r"_team_([a-f0-9-]{36})_"
 
 
-def process(conn, path):
+def process(conn, path, name_to_id):
     stem = Path(path).stem
 
     # team info
@@ -483,7 +451,7 @@ def process(conn, path):
         if not data_type:
             return "skip"
         safe_name = re.sub(rf"_{data_type}$", "", safe_name_and_type)
-        player_id = PLAYER_NAME_TO_ID.get(safe_name)
+        player_id = name_to_id.get(safe_name)
         if not player_id:
             return f"skip (unknown: {safe_name})"
 
@@ -522,12 +490,15 @@ def main():
     conn = sqlite3.connect(args.db)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)
-    seed_static(conn)
+
+    # Build name→id from DB (populated by discover_players.py before this runs)
+    db_players = conn.execute("SELECT id, full_name FROM players").fetchall()
+    name_to_id = {row[1].replace(" ", "_"): row[0] for row in db_players}
 
     files = sorted(Path(args.data_dir).glob("*.json"))
     counts: dict[str, int] = {}
     for f in files:
-        key = process(conn, str(f))
+        key = process(conn, str(f), name_to_id)
         counts[key] = counts.get(key, 0) + 1
 
     conn.commit()
