@@ -47,11 +47,11 @@ COMP_TYPE      = "NATIONAL_TEAMS"
 # Format: {player_name: player_id}
 # IDs are fetched dynamically from the team endpoint; this is a fallback
 KNOWN_ROSTER = {
-    "Paige Crozon":       None,   # IDs populated at runtime from team endpoint
-    "Katherine Plouffe":  None,
-    "Kacie Bosch":        None,
-    "Saicha Grant-Allen": None,
-    "Tara Wallack":       None,
+    "Paige Crozon":       "d29fd8da-3ead-4c41-aa12-b496fb0debe9",
+    "Katherine Plouffe":  "f532294f-8e69-4cbb-be69-7fa1cd6189b5",
+    "Kacie Bosch":        "d9c544b9-cb4d-4280-9bef-6b1102fc7b2a",
+    "Saicha Grant-Allen": "9f9a4068-97fb-4bd2-a865-0c354c533f4d",
+    "Tara Wallack":       "2b6dc75e-dd80-4324-9737-8bc4a0859ce8",
 }
 
 RAW_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw")
@@ -138,37 +138,35 @@ def scrape_team(session, access_token, team_id, season_id, period, date_str) -> 
         _print_summary("Team Overall", data)
         results["overall"] = data
 
-    # 3. Additional offense
-    print("\n[3/5] Additional offense...")
+    # 3. Offense play types (Set Play / Open Play / Transition)
+    print("\n[3/5] Offense play types...")
     data = _safe_call(
-        sf.get_team_additional_offense, "team additional offense",
+        sf.get_team_additional_offense, "team offense play types",
         session, access_token, team_id, season_id, period, COMP_TYPE,
     )
     if data is not None:
-        _save(data, f"{date_str}_team_{team_id}_additional_offense_{period}.json")
-        _print_summary("Team Additional Offense", data)
-        results["additional_offense"] = data
+        _save(data, f"{date_str}_team_{team_id}_offense_play_types_{period}.json")
+        results["offense_play_types"] = data
 
-    # 4. Play types
-    print("\n[4/5] Play types...")
+    # 4. Defense play types (Set Play / Open Play / Transition)
+    print("\n[4/5] Defense play types...")
     data = _safe_call(
-        sf.get_team_play_types, "team play types",
+        sf.get_team_additional_defense, "team defense play types",
         session, access_token, team_id, season_id, period, COMP_TYPE,
     )
     if data is not None:
-        _save(data, f"{date_str}_team_{team_id}_play_types_{period}.json")
-        results["play_types"] = data
+        _save(data, f"{date_str}_team_{team_id}_defense_play_types_{period}.json")
+        results["defense_play_types"] = data
 
-    # 5. Defensive stats
-    print("\n[5/5] Defensive stats...")
+    # 5. Individual play types (CUT, PNR, ISO, etc.)
+    print("\n[5/5] Individual play types...")
     data = _safe_call(
-        sf.get_team_defensive, "team defensive",
+        sf.get_team_play_types, "team individual play types",
         session, access_token, team_id, season_id, period, COMP_TYPE,
     )
     if data is not None:
-        _save(data, f"{date_str}_team_{team_id}_defensive_{period}.json")
-        _print_summary("Team Defensive", data)
-        results["defensive"] = data
+        _save(data, f"{date_str}_team_{team_id}_play_types_detail_{period}.json")
+        results["play_types_detail"] = data
 
     return results
 
@@ -205,8 +203,12 @@ def get_roster(session, access_token, team_id) -> list[dict]:
     )
 
     if not players:
-        print("  Team info returned no players array — check team info JSON")
-        return []
+        print("  Team info returned no players array — falling back to KNOWN_ROSTER")
+        return [
+            {"id": pid, "name": name}
+            for name, pid in KNOWN_ROSTER.items()
+            if pid
+        ]
 
     print(f"  Roster: {len(players)} players")
     for p in players:
@@ -269,7 +271,7 @@ def main():
     parser.add_argument(
         "--period", default="LAST_3",
         choices=list(sf.CONSTANTS.PERIODS.values()),
-        help="Stat window (default: LAST_3)"
+        help="Stat window: LAST_1 (last match), LAST_3, LAST_5, LAST_10 (default: LAST_3)"
     )
     parser.add_argument(
         "--team", default=CANADA_WNT_ID,
