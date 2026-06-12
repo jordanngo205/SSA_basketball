@@ -37,13 +37,12 @@ BASE_URL = "https://www.strongsideanalytics.com/ssa-be/api/v1"
 class CONSTANTS:
     # Period filters — used as path segment in reporting URLs
     PERIODS = {
-        "last_1":         "LAST_1",
-        "last_3":         "LAST_3",
-        "last_5":         "LAST_5",
-        "last_10":        "LAST_10",
-        "season":         "SEASON",
-        "current_season": "CURRENT_SEASON",
-        "all":            "ALL",
+        "last_1":  "LAST_1",
+        "last_3":  "LAST_3",
+        "last_5":  "LAST_5",
+        "last_10": "LAST_10",
+        "season":  "SEASON",
+        "all":     "ALL",
     }
 
     # Competition types — used as path segment in reporting URLs
@@ -310,6 +309,40 @@ def get_player_shooting_tendency_finishing(
 ) -> list[dict]:
     """Finishing at the rim: layup/floater/hook by hand (left/right), made/attempted/%."""
     url = f"{BASE_URL}/reporting/player/{player_id}/shooting/tendency/finishing/{period}/{competition_type}"
+    return _report_post(session, access_token, url, season_id, match_ids)
+
+
+def get_player_shot_zones(
+    session, access_token, player_id, season_id,
+    is_dribble: bool = False,
+    period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
+) -> list[dict]:
+    """
+    Shot zone chart: 15 court zones with made/missed per zone.
+    is_dribble=False → no-dribble shots chart
+    is_dribble=True  → dribble shots chart
+    Zones: TWO_POINTS_LAYUP_LEFT/RIGHT, THREE_POINTS_RIGHT/LEFT_CORNER/WING/TOP,
+           TWO_POINTS_LONG/MID_* (mid-range zones)
+    """
+    dribble = "true" if is_dribble else "false"
+    url = f"{BASE_URL}/reporting/player/{player_id}/is-dribble/{dribble}/shooting-zone/{period}/{competition_type}"
+    resp = session.post(
+        url,
+        json={"matchIds": match_ids or [], "seasonId": season_id},
+        headers=_headers(access_token),
+        params={"asDefender": "false"},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_player_turnovers(
+    session, access_token, player_id, season_id,
+    period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
+) -> list[dict]:
+    """Turnover breakdown by play type: BAD_PASS, TRAVELING, DRIBBLE_TURNOVER, etc."""
+    url = f"{BASE_URL}/reporting/player/{player_id}/turnovers/{period}/{competition_type}"
     return _report_post(session, access_token, url, season_id, match_ids)
 
 

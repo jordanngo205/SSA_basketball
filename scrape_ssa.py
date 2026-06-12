@@ -235,7 +235,7 @@ def scrape_player(
     results = {}
     safe_name = player_name.replace(" ", "_")
 
-    endpoints = [
+    standard_endpoints = [
         ("overall",              sf.get_player_overall),
         ("offense_play_types",   sf.get_player_offense_play_types),
         ("defense_play_types",   sf.get_player_defense_play_types),
@@ -243,9 +243,10 @@ def scrape_player(
         ("tendency_shooting",    sf.get_player_shooting_tendency),
         ("tendency_dribble",     sf.get_player_shooting_tendency_dribble),
         ("tendency_finishing",   sf.get_player_shooting_tendency_finishing),
+        ("turnovers",            sf.get_player_turnovers),
     ]
 
-    for key, fn in endpoints:
+    for key, fn in standard_endpoints:
         print(f"  → {key}...", end=" ", flush=True)
         data = _safe_call(
             fn, f"player {key}",
@@ -258,8 +259,23 @@ def scrape_player(
             print("✓")
         else:
             print("✗")
+        time.sleep(0.2)
 
-        time.sleep(0.2)  # Be polite to the API
+    # Shot zone charts (no-dribble and dribble)
+    for dribble_flag, label in [(False, "shot_zones_no_dribble"), (True, "shot_zones_dribble")]:
+        print(f"  → {label}...", end=" ", flush=True)
+        data = _safe_call(
+            sf.get_player_shot_zones, f"player {label}",
+            session, access_token, player_id, season_id, dribble_flag, period, COMP_TYPE,
+        )
+        if data is not None:
+            fname = f"{date_str}_player_{safe_name}_{label}_{period}.json"
+            _save(data, fname)
+            results[label] = data
+            print("✓")
+        else:
+            print("✗")
+        time.sleep(0.2)
 
     return results
 
@@ -273,7 +289,7 @@ def main():
     parser.add_argument(
         "--period", default="LAST_3",
         choices=list(sf.CONSTANTS.PERIODS.values()),
-        help="Stat window: LAST_1 (last match), LAST_3, LAST_5, LAST_10 (default: LAST_3)"
+        help="Stat window: LAST_1 (last match), LAST_3, LAST_5, LAST_10, SEASON, ALL (default: LAST_3)"
     )
     parser.add_argument(
         "--team", default=CANADA_WNT_ID,
