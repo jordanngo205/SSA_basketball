@@ -41,6 +41,7 @@ class CONSTANTS:
         "last_3":         "LAST_3",
         "last_5":         "LAST_5",
         "last_10":        "LAST_10",
+        "season":         "SEASON",
         "current_season": "CURRENT_SEASON",
         "all":            "ALL",
     }
@@ -262,29 +263,53 @@ def get_player_play_types(
     session, access_token, player_id, season_id,
     period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
 ) -> list[dict]:
-    """Play-type breakdown for a single player."""
-    url = f"{BASE_URL}/reporting/player/{player_id}/play-types/{period}/{competition_type}"
+    """Individual play-type breakdown for a player (CUT, PNR, ISO, HANDOFF, etc.)."""
+    url = f"{BASE_URL}/reporting/player/{player_id}/offense/{period}/{competition_type}"
     return _report_post(session, access_token, url, season_id, match_ids)
 
 
-def get_player_defensive(
+def get_player_offense_play_types(
     session, access_token, player_id, season_id,
     period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
 ) -> list[dict]:
-    """Defensive stats for a single player."""
-    url = f"{BASE_URL}/reporting/player/{player_id}/defensive/{period}/{competition_type}"
+    """Offense play-type summary: Set Play, Open Play (cleared by pass/dribble), Transition."""
+    url = f"{BASE_URL}/reporting/player/{player_id}/overall-additional-offensive/{period}/{competition_type}"
     return _report_post(session, access_token, url, season_id, match_ids)
 
 
-def get_player_shot_chart(
+def get_player_defense_play_types(
     session, access_token, player_id, season_id,
     period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
 ) -> list[dict]:
-    """
-    Shot chart data for a single player (zone breakdown with x/y coords).
-    Note: endpoint path is inferred — confirm with network tab if 404.
-    """
-    url = f"{BASE_URL}/reporting/player/{player_id}/shot-chart/{period}/{competition_type}"
+    """Defense play-type summary: Set Play, Open Play (cleared by pass/dribble), Transition."""
+    url = f"{BASE_URL}/reporting/player/{player_id}/overall-additional-defensive/{period}/{competition_type}"
+    return _report_post(session, access_token, url, season_id, match_ids)
+
+
+def get_player_shooting_tendency(
+    session, access_token, player_id, season_id,
+    period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
+) -> list[dict]:
+    """Overall shooting report: short/mid/2pt by dribble jumper vs no-dribble, left/right hand."""
+    url = f"{BASE_URL}/reporting/player/{player_id}/shooting/tendency/{period}/{competition_type}"
+    return _report_post(session, access_token, url, season_id, match_ids)
+
+
+def get_player_shooting_tendency_dribble(
+    session, access_token, player_id, season_id,
+    period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
+) -> list[dict]:
+    """Dribble jumper tendency: by play type (PNR, Handoff, ISO, etc.) and hand (left/right)."""
+    url = f"{BASE_URL}/reporting/player/{player_id}/shooting/tendency/dribble/{period}/{competition_type}"
+    return _report_post(session, access_token, url, season_id, match_ids)
+
+
+def get_player_shooting_tendency_finishing(
+    session, access_token, player_id, season_id,
+    period="LAST_3", competition_type="NATIONAL_TEAMS", match_ids=None,
+) -> list[dict]:
+    """Finishing at the rim: layup/floater/hook by hand (left/right), made/attempted/%."""
+    url = f"{BASE_URL}/reporting/player/{player_id}/shooting/tendency/finishing/{period}/{competition_type}"
     return _report_post(session, access_token, url, season_id, match_ids)
 
 
