@@ -191,10 +191,14 @@ def scrape_team(
     period, date_str,
     team_only: bool = False,
 ) -> None:
-    safe_name = team_name.replace(" ", "_")
     print(f"\n  {'─'*52}")
-    print(f"  {team_name}")
+    print(f"  {team_name}  ({team_id[:8]}...)")
     print(f"  {'─'*52}")
+
+    # Save team info stub so loader can register the team
+    _save({"id": team_id, "name": team_name, "competitionType": COMP_TYPE,
+           "sex": "FEMALE", "gameType": "THREE_X_THREE"},
+          f"{date_str}_team_{team_id}_info.json")
 
     # Match list
     matches = _safe_call(
@@ -202,22 +206,22 @@ def scrape_team(
         session, access_token, team_id, SEASON_ID,
     )
     if matches is not None:
-        _save(matches, f"{date_str}_{safe_name}_matches.json")
+        _save(matches, f"{date_str}_team_{team_id}_matches.json")
         print(f"    matches : {len(matches)}")
 
-    # Team stats
+    # Team stats — filenames match load_ssa_db.py pattern
     for label, fn in [
-        ("overall",            sf.get_team_overall),
-        ("additional_offense", sf.get_team_additional_offense),
-        ("play_types",         sf.get_team_play_types),
-        ("defensive",          sf.get_team_defensive),
+        ("overall",              sf.get_team_overall),
+        ("offense_play_types",   sf.get_team_additional_offense),
+        ("defense_play_types",   sf.get_team_additional_defense),
+        ("play_types_detail",    sf.get_team_play_types),
     ]:
         data = _safe_call(
             fn, label,
             session, access_token, team_id, SEASON_ID, period, COMP_TYPE,
         )
         if data is not None:
-            _save(data, f"{date_str}_{safe_name}_{label}_{period}.json")
+            _save(data, f"{date_str}_team_{team_id}_{label}_{period}.json")
             print(f"    {label:<22} ✓")
         else:
             print(f"    {label:<22} ✗")
@@ -288,7 +292,7 @@ def main():
     parser = argparse.ArgumentParser(description="Scrape all WNT teams from SSA 2026 FIBA CUPS")
     parser.add_argument(
         "--period", default="LAST_3",
-        choices=list(sf.CONSTANTS.PERIODS.values()),
+        choices=["LAST_1","LAST_3","LAST_5","LAST_10","SEASON","ALL"],
         help="Stat window (default: LAST_3)"
     )
     parser.add_argument(
