@@ -348,8 +348,21 @@ def main():
     print(report)
 
     if args.save:
-        Path(args.save).write_text(report)
-        print(f"\nSaved → {args.save}")
+        md_path = Path(args.save)
+        md_path.write_text(report)
+        print(f"\nSaved → {md_path}")
+
+        # Auto-generate HTML
+        html_path = md_path.with_suffix(".html")
+        try:
+            import subprocess
+            subprocess.run(
+                [sys.executable, str(Path(__file__).parent / "report_html.py"),
+                 "--input", str(md_path), "--output", str(html_path)],
+                check=True,
+            )
+        except Exception as e:
+            print(f"HTML generation failed: {e}")
 
 
 if __name__ == "__main__":
