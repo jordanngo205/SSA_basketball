@@ -2,7 +2,6 @@
 __pycache__/
 .venv/
 data/raw/
-data/db/
 *.pdf
 australia_scout_report.html
 beijing_scout_report.html
