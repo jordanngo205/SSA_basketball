@@ -298,7 +298,7 @@ def build_html(teams, players, play_types, matches, match_stats, match_play_type
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SSA 3x3 Women's Series — Analytics Dashboard (2025–2026)</title>
+<title>SSA 3x3 Women's Series — Analytics Dashboard (2026–2027)</title>
 <style>
 /* ── Reset & Base ─────────────────────────────────────────────────────── */
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -607,7 +607,7 @@ input[type=range] {{ accent-color: var(--canada); }}
       <span class="logo-main">Canada Basketball</span>
       <span class="logo-sub">3×3 Women's Series Analytics</span>
     </div>
-    <span class="logo-badge">2025–26</span>
+    <span class="logo-badge">2026–27</span>
   </div>
   <div class="topstats" id="topstats"></div>
 </div>
@@ -688,7 +688,7 @@ input[type=range] {{ accent-color: var(--canada); }}
       <div class="card-body" id="ov-passes-clubs"></div>
     </div>
   </div>
-  <p class="note">&#9432; SSA data covers 2025–2026 season only. 1PT% = inside-arc shots (1 pt each) | 2PT% = outside-arc shots (2 pts) | FT% = free throws. Key Passes = assists.</p>
+  <p class="note">&#9432; SSA data covers 2026–2027 season only. 1PT% = inside-arc shots (1 pt each) | 2PT% = outside-arc shots (2 pts) | FT% = free throws. Key Passes = assists.</p>
 </div>
 
 <!-- ╔══ TAB: TEAM RANKINGS ═══════════════════════════════════════════════╗ -->
