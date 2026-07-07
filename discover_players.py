@@ -111,6 +111,7 @@ ROSTERS: dict[str, list[str]] = {
     ],
     "France WNT": [
         "Hortense Limouzin", "Marie Michelle Milapie", "Laetitia Guapo", "Marie Mané",
+        "Myriam Djekoundade", "Marie-Eve Paget",
     ],
     "Egypt WNT": [
         "Raneem Mohamed", "Hala ElShaarawy", "Nadine Selaawy", "Soraya Mohamed",
@@ -122,9 +123,12 @@ ROSTERS: dict[str, list[str]] = {
     "Chinese Taipei WNT": [
         "Chun-Hsi Chiu", "Chen-I Li", "Yu-Tsz Lee", "Yu Min Chang",
     ],
+    "Serbia WNT": [
+        "Nevena Vuckovic",
+    ],
     "China WNT": [
         "ZhiTing Zhang", "A Ganajing", "Wanglai Zhang", "JianPing Zhang",
-        "Wenxia Li", "Yuyan Li", "Lili Wang",
+        "Wenxia Li", "Yuyan Li", "Lili Wang", "FengYi Sun",
     ],
     "Canada WNT": [
         "Paige Crozon", "Katherine Plouffe", "Kacie Bosch",
@@ -258,53 +262,195 @@ def discover_all_players(session, token) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Phase 2: scrape stats
+# DB insert helpers
 # ---------------------------------------------------------------------------
 
-def scrape_player(session, token, player_id, player_name, period, date_str) -> None:
-    safe = player_name.replace(" ", "_").replace("/", "_")
+def _upsert(conn, table, row):
+    cols = ", ".join(row.keys())
+    phs  = ", ".join(["?"] * len(row))
+    conn.execute(f"INSERT OR REPLACE INTO {table} ({cols}) VALUES ({phs})", list(row.values()))
+
+
+def _insert_overall(conn, player_id, period, data):
+    for item in data:
+        v = item.get("values", {})
+        _upsert(conn, "player_stats", {
+            "player_id": player_id, "period": period, "competition_type": COMP_TYPE,
+            "stat_label": item["label"],
+            "total": v.get("total"), "per_game": v.get("perGame"),
+        })
+
+
+def _insert_play_types(conn, player_id, period, side, data):
+    for item in data:
+        v = item.get("values", {})
+        _upsert(conn, "player_play_types", {
+            "player_id": player_id, "period": period, "competition_type": COMP_TYPE, "side": side,
+            "label": item["label"],
+            "possession": v.get("possession"), "points": v.get("points"),
+            "ppp": v.get("pointsPerPossession"), "pct": v.get("possessionPercentage"),
+        })
+
+
+def _insert_play_types_detail(conn, player_id, period, data):
+    for item in data:
+        v = item.get("values", {})
+        _upsert(conn, "player_play_types_detail", {
+            "player_id": player_id, "period": period, "competition_type": COMP_TYPE, "play_type": item["label"],
+            "poss": v.get("numberOfPossessions"), "ppp": v.get("pointsPerPossession"),
+            "usage": v.get("usage"),
+            "ft_m": v.get("ftM"), "ft_a": v.get("ftA"),
+            "two_pt_m": v.get("twoPtM"), "two_pt_a": v.get("twoPtA"),
+            "two_pt_pct": v.get("twoPtPercentage"),
+            "three_pt_m": v.get("threePtM"), "three_pt_a": v.get("threePtA"),
+            "three_pt_pct": v.get("threePtPercentage"),
+            "turnovers": v.get("turnovers"), "assists": v.get("assistance"),
+        })
+
+
+def _shooting_vals(values):
+    v = values[0] if isinstance(values, list) and values else (values or {})
+    return {
+        "short_range_m":   v.get("shortRangeM", 0),
+        "short_range_a":   v.get("shortRangeA", 0),
+        "short_range_pct": v.get("shortRangePercentage", 0.0),
+        "mid_range_m":     v.get("midRangeM", 0),
+        "mid_range_a":     v.get("midRangeA", 0),
+        "mid_range_pct":   v.get("midRangePercentage", 0.0),
+        "two_pt_m":        v.get("threePtM", 0),
+        "two_pt_a":        v.get("threePtA", 0),
+        "two_pt_pct":      v.get("threePtPercentage", 0.0),
+    }
+
+
+def _insert_tendency_shooting(conn, player_id, period, data):
+    current_cat = "TOTAL_SHOTS"
+    for item in data:
+        label, level = item["label"], item["level"]
+        if level == 0:
+            current_cat, hand = label, "ALL"
+        elif level == 1:
+            hand = ("LEFT" if "LEFT" in label else "RIGHT") if label.startswith("FROM_") else "ALL"
+            if not label.startswith("FROM_"):
+                current_cat = label
+        else:
+            hand = "LEFT" if "LEFT" in label else "RIGHT"
+        _upsert(conn, "player_tendency_shooting", {
+            "player_id": player_id, "period": period, "competition_type": COMP_TYPE,
+            "category": current_cat, "hand": hand,
+            **_shooting_vals(item["values"]),
+        })
+
+
+def _insert_tendency_dribble(conn, player_id, period, data):
+    current_pt = "ALL"
+    for item in data:
+        label, level = item["label"], item["level"]
+        if level == 0:
+            current_pt, hand = "ALL", "ALL"
+        elif level == 1:
+            if label.startswith("FROM_"):
+                hand = "LEFT" if "LEFT" in label else "RIGHT"
+                current_pt = "ALL"
+            else:
+                current_pt, hand = label, "ALL"
+        else:
+            hand = "LEFT" if "LEFT" in label else "RIGHT"
+        _upsert(conn, "player_tendency_dribble", {
+            "player_id": player_id, "period": period, "competition_type": COMP_TYPE,
+            "play_type": current_pt, "hand": hand,
+            **_shooting_vals(item["values"]),
+        })
+
+
+def _insert_tendency_finishing(conn, player_id, period, data):
+    current_shot = "ALL"
+    for item in data:
+        label, level = item["label"], item["level"]
+        v = item["values"]
+        if level in (0, 1):
+            current_shot, hand = label, "ALL"
+        else:
+            hand = "LEFT" if "LEFT" in label else "RIGHT"
+        _upsert(conn, "player_tendency_finishing", {
+            "player_id": player_id, "period": period, "competition_type": COMP_TYPE,
+            "shot_type": current_shot, "hand": hand,
+            "made": v.get("made", 0), "attempted": v.get("attempted", 0),
+            "pct": v.get("percentage", 0.0),
+        })
+
+
+def _insert_turnovers(conn, player_id, period, data):
+    for item in data:
+        v = item.get("values", {})
+        _upsert(conn, "player_turnovers", {
+            "player_id": player_id, "period": period, "competition_type": COMP_TYPE, "play_type": item["label"],
+            "bad_pass": v.get("BAD_PASS", 0), "traveling": v.get("TRAVELING", 0),
+            "dribble_turnover": v.get("DRIBBLE_TURNOVER", 0),
+            "line_violation": v.get("LINE_VIOLATION", 0),
+            "clock_violation": v.get("CLOCK_VIOLATION", 0),
+            "offensive_foul": v.get("OFFENSIVE_FOUL", 0),
+            "other": v.get("OTHER", 0), "total": v.get("TOTAL", 0),
+        })
+
+
+def _insert_shot_zones(conn, player_id, period, is_dribble, data):
+    for item in data:
+        v = item.get("values", {})
+        _upsert(conn, "player_shot_zones", {
+            "player_id": player_id, "period": period, "competition_type": COMP_TYPE,
+            "is_dribble": 1 if is_dribble else 0,
+            "zone": item["label"],
+            "made": v.get("made", 0), "missed": v.get("missed", 0),
+            "total": v.get("total", 0), "pct": v.get("percentage", 0.0),
+        })
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: scrape stats directly into SQLite
+# ---------------------------------------------------------------------------
+
+def scrape_player(session, token, conn, player_id, player_name, period) -> None:
+    results = []
+
     endpoints = [
-        ("overall",            sf.get_player_overall),
-        ("offense_play_types", sf.get_player_offense_play_types),
-        ("defense_play_types", sf.get_player_defense_play_types),
-        ("play_types_detail",  sf.get_player_play_types),
-        ("tendency_shooting",  sf.get_player_shooting_tendency),
-        ("tendency_dribble",   sf.get_player_shooting_tendency_dribble),
-        ("tendency_finishing", sf.get_player_shooting_tendency_finishing),
-        ("turnovers",          sf.get_player_turnovers),
+        (sf.get_player_overall,                   lambda d: _insert_overall(conn, player_id, period, d)),
+        (sf.get_player_offense_play_types,         lambda d: _insert_play_types(conn, player_id, period, "offense", d)),
+        (sf.get_player_defense_play_types,         lambda d: _insert_play_types(conn, player_id, period, "defense", d)),
+        (sf.get_player_play_types,                 lambda d: _insert_play_types_detail(conn, player_id, period, d)),
+        (sf.get_player_shooting_tendency,          lambda d: _insert_tendency_shooting(conn, player_id, period, d)),
+        (sf.get_player_shooting_tendency_dribble,  lambda d: _insert_tendency_dribble(conn, player_id, period, d)),
+        (sf.get_player_shooting_tendency_finishing, lambda d: _insert_tendency_finishing(conn, player_id, period, d)),
+        (sf.get_player_turnovers,                  lambda d: _insert_turnovers(conn, player_id, period, d)),
     ]
 
-    results = []
-    for key, fn in endpoints:
+    for fn, insert_fn in endpoints:
         try:
             data = fn(session, token, player_id, SEASON_ID, period, COMP_TYPE)
-            path = os.path.join(RAW_DIR, f"{date_str}_player_{safe}_{key}_{period}.json")
-            sf.write_data(path, data)
+            insert_fn(data)
             results.append("✓")
         except Exception:
             results.append("✗")
         time.sleep(0.15)
 
-    for is_dribble, label in [(False, "shot_zones_no_dribble"), (True, "shot_zones_dribble")]:
+    for is_dribble in (False, True):
         try:
             data = sf.get_player_shot_zones(session, token, player_id, SEASON_ID, is_dribble, period, COMP_TYPE)
-            path = os.path.join(RAW_DIR, f"{date_str}_player_{safe}_{label}_{period}.json")
-            sf.write_data(path, data)
+            _insert_shot_zones(conn, player_id, period, is_dribble, data)
             results.append("✓")
         except Exception:
             results.append("✗")
         time.sleep(0.15)
 
-    print(f"    {''.join(results)}")
+    conn.commit()
+    print(f"    {''.join(results)}", flush=True)
 
 
 # ---------------------------------------------------------------------------
 # Seed players into DB
 # ---------------------------------------------------------------------------
 
-def seed_players_to_db(roster: dict) -> None:
-    conn = sqlite3.connect(DB_PATH)
-
+def seed_players_to_db(conn, roster: dict) -> None:
     for team_id, players in roster.items():
         for p in players:
             conn.execute(
@@ -312,17 +458,9 @@ def seed_players_to_db(roster: dict) -> None:
                 "VALUES (?, ?, ?, ?, ?, ?)",
                 (p["id"], p["name"], team_id, p.get("position"), p.get("height"), p.get("jersey", "")),
             )
-
     conn.commit()
     n = conn.execute("SELECT COUNT(*) FROM players").fetchone()[0]
-    conn.close()
     print(f"  Players in DB: {n}")
-
-
-def load_into_db() -> None:
-    print("\nLoading into SQLite...")
-    import subprocess
-    subprocess.run([sys.executable, os.path.join(BASE_DIR, "load_ssa_db.py")], check=True)
 
 
 # ---------------------------------------------------------------------------
@@ -336,17 +474,16 @@ def main():
     parser.add_argument("--team",          default=None, help="Limit to one team name")
     parser.add_argument("--period",        default="SEASON",
                         choices=["LAST_1","LAST_3","LAST_5","LAST_10","SEASON","ALL"])
-    parser.add_argument("--no-db",         action="store_true")
     args = parser.parse_args()
 
     load_dotenv(os.path.join(BASE_DIR, ".env"))
     session = requests.Session()
     print("Authenticating...")
     token, _ = sf.get_access_token(session, os.getenv("SSA_USERNAME"), os.getenv("SSA_PASSWORD"))
-    os.makedirs(RAW_DIR, exist_ok=True)
 
-    from datetime import datetime
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA journal_mode=WAL")
 
     if not args.scrape_only:
         print("\n=== Phase 1: Matching players ===")
@@ -361,25 +498,25 @@ def main():
 
     if args.discover_only:
         print("\nDone (discover only).")
+        conn.close()
         return
 
     if args.team:
-        conn = sqlite3.connect(DB_PATH)
         row = conn.execute("SELECT id FROM teams WHERE name LIKE ?",
                            (f"%{args.team.split()[0]}%",)).fetchone()
-        conn.close()
         if not row:
             print(f"Team not found: {args.team}")
+            conn.close()
             sys.exit(1)
         roster = {row[0]: roster.get(row[0], [])}
 
-    seed_players_to_db(roster)
+    seed_players_to_db(conn, roster)
 
-    team_id_map  = get_team_id_map()
-    name_map     = {v: k for k, v in team_id_map.items()}
+    team_id_map   = get_team_id_map()
+    name_map      = {v: k for k, v in team_id_map.items()}
     total_players = sum(len(v) for v in roster.values())
 
-    print(f"\n=== Phase 2: Scraping stats ({total_players} players, period={args.period}) ===")
+    print(f"\n=== Phase 2: Scraping → SQLite ({total_players} players, period={args.period}) ===")
 
     done = 0
     for team_id, players in roster.items():
@@ -387,11 +524,11 @@ def main():
         print(f"\n  {team_name} ({len(players)} players)")
         for p in players:
             done += 1
-            print(f"  [{done}/{total_players}] {p['name']}", end="  ")
-            scrape_player(session, token, p["id"], p["name"], args.period, date_str)
+            print(f"  [{done}/{total_players}] {p['name']}", end="  ", flush=True)
+            scrape_player(session, token, conn, p["id"], p["name"], args.period)
 
-    if not args.no_db:
-        load_into_db()
+    conn.close()
+    print(f"\n✅ Complete — {done} players scraped directly into DB")
 
     print(f"\n✅ Complete — {done} players scraped")
 

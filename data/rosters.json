@@ -751,6 +751,20 @@
       "position": "GUARD",
       "height": 184.0,
       "jersey": "1"
+    },
+    {
+      "id": "1da9d4e6-4268-4734-b6c0-c43fd88db0da",
+      "name": "Myriam Djekoundade",
+      "position": "FORWARD",
+      "height": 187.0,
+      "jersey": "11"
+    },
+    {
+      "id": "f86d960d-1b3c-4a43-8aad-1674c04d5d06",
+      "name": "Marie-Eve Paget",
+      "position": "GUARD",
+      "height": 170.0,
+      "jersey": "0"
     }
   ],
   "40a6d73b-4fb5-4ad6-8a36-84b06c44c0e2": [
@@ -850,6 +864,15 @@
       "jersey": "23"
     }
   ],
+  "serbia-wnt-2026": [
+    {
+      "id": "9e439470-f601-4dca-9558-a4b6cdd2d256",
+      "name": "Nevena Vuckovic",
+      "position": "FORWARD",
+      "height": 185.0,
+      "jersey": "14"
+    }
+  ],
   "50350730-033f-484a-8d0b-b273734f8765": [
     {
       "id": "24980a68-18d8-40db-b957-5a29f1a61748",
@@ -899,6 +922,13 @@
       "position": "GUARD",
       "height": 175.0,
       "jersey": "23"
+    },
+    {
+      "id": "ac0e2a84-eefb-4a8a-809d-1d7ccb3eb5d2",
+      "name": "FengYi Sun",
+      "position": "GUARD",
+      "height": 179.0,
+      "jersey": "0"
     }
   ],
   "4f9b83f2-8209-4e04-a9bb-6fcd0a03f739": [

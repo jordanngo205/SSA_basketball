@@ -9,6 +9,7 @@ import json
 import os
 import re
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -233,8 +234,8 @@ def _shooting_vals(values):
     }
 
 
-def load_team_info(conn, path):
-    d = json.loads(Path(path).read_text(encoding="utf-8"))
+def load_team_info(conn, data):
+    d = data
     upsert(conn, "teams", {
         "id": d["id"], "name": d.get("name"),
         "competition_type": d.get("competitionType"),
@@ -243,8 +244,8 @@ def load_team_info(conn, path):
     })
 
 
-def load_matches(conn, path):
-    for m in json.loads(Path(path).read_text(encoding="utf-8")):
+def load_matches(conn, data):
+    for m in data:
         upsert(conn, "matches", {
             "id": m.get("id"), "season_id": m.get("seasonId"),
             "season_name": m.get("seasonName"),
@@ -255,51 +256,47 @@ def load_matches(conn, path):
         })
 
 
-def load_stats(conn, table, id_col, entity_id, period, path):
-    for item in json.loads(Path(path).read_text(encoding="utf-8")):
+def load_stats(conn, table, id_col, entity_id, period, data, competition_type=None):
+    for item in data:
         v = item.get("values", {})
-        upsert(conn, table, {
-            id_col: entity_id, "period": period,
-            "stat_label": item["label"],
-            "total": v.get("total"), "per_game": v.get("perGame"),
-        })
+        row = {id_col: entity_id, "period": period,
+               "stat_label": item["label"],
+               "total": v.get("total"), "per_game": v.get("perGame")}
+        if competition_type and id_col == "player_id":
+            row["competition_type"] = competition_type
+        upsert(conn, table, row)
 
 
-def load_play_types(conn, table, id_col, entity_id, period, side, path):
-    for item in json.loads(Path(path).read_text(encoding="utf-8")):
+def load_play_types(conn, table, id_col, entity_id, period, side, data, competition_type=None):
+    for item in data:
         v = item.get("values", {})
-        upsert(conn, table, {
-            id_col: entity_id, "period": period, "side": side,
-            "label": item["label"],
-            "possession": v.get("possession"), "points": v.get("points"),
-            "ppp": v.get("pointsPerPossession"), "pct": v.get("possessionPercentage"),
-        })
+        row = {id_col: entity_id, "period": period, "side": side,
+               "label": item["label"],
+               "possession": v.get("possession"), "points": v.get("points"),
+               "ppp": v.get("pointsPerPossession"), "pct": v.get("possessionPercentage")}
+        if competition_type and id_col == "player_id":
+            row["competition_type"] = competition_type
+        upsert(conn, table, row)
 
 
-def load_play_types_detail(conn, table, id_col, entity_id, period, path):
-    for item in json.loads(Path(path).read_text(encoding="utf-8")):
+def load_play_types_detail(conn, table, id_col, entity_id, period, data, competition_type=None):
+    for item in data:
         v = item.get("values", {})
-        upsert(conn, table, {
-            id_col: entity_id, "period": period, "play_type": item["label"],
-            "poss": v.get("numberOfPossessions"), "ppp": v.get("pointsPerPossession"),
-            "usage": v.get("usage"),
-            "ft_m": v.get("ftM"), "ft_a": v.get("ftA"),
-            "two_pt_m": v.get("twoPtM"), "two_pt_a": v.get("twoPtA"),
-            "two_pt_pct": v.get("twoPtPercentage"),
-            "three_pt_m": v.get("threePtM"), "three_pt_a": v.get("threePtA"),
-            "three_pt_pct": v.get("threePtPercentage"),
-            "turnovers": v.get("turnovers"), "assists": v.get("assistance"),
-        })
+        row = {id_col: entity_id, "period": period, "play_type": item["label"],
+               "poss": v.get("numberOfPossessions"), "ppp": v.get("pointsPerPossession"),
+               "usage": v.get("usage"),
+               "ft_m": v.get("ftM"), "ft_a": v.get("ftA"),
+               "two_pt_m": v.get("twoPtM"), "two_pt_a": v.get("twoPtA"),
+               "two_pt_pct": v.get("twoPtPercentage"),
+               "three_pt_m": v.get("threePtM"), "three_pt_a": v.get("threePtA"),
+               "three_pt_pct": v.get("threePtPercentage"),
+               "turnovers": v.get("turnovers"), "assists": v.get("assistance")}
+        if competition_type and id_col == "player_id":
+            row["competition_type"] = competition_type
+        upsert(conn, table, row)
 
 
-def load_tendency_shooting(conn, player_id, period, path):
-    """
-    [0] TOTAL_SHOTS → category=TOTAL_SHOTS, hand=ALL
-      [1] DRIBBLE_JUMPER → category=DRIBBLE_JUMPER, hand=ALL
-        [2] FROM_LEFT/RIGHT_HAND → hand=LEFT/RIGHT
-      [1] NO_DRIBBLE_JUMPER → category=NO_DRIBBLE_JUMPER, hand=ALL
-    """
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+def load_tendency_shooting(conn, player_id, period, data, competition_type=None):
     current_cat = "TOTAL_SHOTS"
     for item in data:
         label, level = item["label"], item["level"]
@@ -312,22 +309,15 @@ def load_tendency_shooting(conn, player_id, period, path):
                 current_cat, hand = label, "ALL"
         else:
             hand = "LEFT" if "LEFT" in label else "RIGHT"
-        upsert(conn, "player_tendency_shooting", {
-            "player_id": player_id, "period": period,
-            "category": current_cat, "hand": hand,
-            **_shooting_vals(item["values"]),
-        })
+        row = {"player_id": player_id, "period": period,
+               "category": current_cat, "hand": hand,
+               **_shooting_vals(item["values"])}
+        if competition_type:
+            row["competition_type"] = competition_type
+        upsert(conn, "player_tendency_shooting", row)
 
 
-def load_tendency_dribble(conn, player_id, period, path):
-    """
-    [0] ALL → play_type=ALL, hand=ALL
-      [1] FROM_LEFT/RIGHT → play_type=ALL, hand=LEFT/RIGHT
-      [1] PICK_AND_ROLL → play_type=PICK_AND_ROLL, hand=ALL
-        [2] FROM_LEFT/RIGHT → play_type=PICK_AND_ROLL, hand=LEFT/RIGHT
-      ...
-    """
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+def load_tendency_dribble(conn, player_id, period, data, competition_type=None):
     current_pt = "ALL"
     for item in data:
         label, level = item["label"], item["level"]
@@ -341,20 +331,15 @@ def load_tendency_dribble(conn, player_id, period, path):
                 current_pt, hand = label, "ALL"
         else:
             hand = "LEFT" if "LEFT" in label else "RIGHT"
-        upsert(conn, "player_tendency_dribble", {
-            "player_id": player_id, "period": period,
-            "play_type": current_pt, "hand": hand,
-            **_shooting_vals(item["values"]),
-        })
+        row = {"player_id": player_id, "period": period,
+               "play_type": current_pt, "hand": hand,
+               **_shooting_vals(item["values"])}
+        if competition_type:
+            row["competition_type"] = competition_type
+        upsert(conn, "player_tendency_dribble", row)
 
 
-def load_tendency_finishing(conn, player_id, period, path):
-    """
-    [0] ALL
-      [1] LAYUP / FLOATER_OR_RUNNER / HOOK_SHOT / DUNK / TIP_SHOT / JUMPER
-        [2] FROM_LEFT/RIGHT_HAND
-    """
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+def load_tendency_finishing(conn, player_id, period, data, competition_type=None):
     current_shot = "ALL"
     for item in data:
         label, level = item["label"], item["level"]
@@ -365,82 +350,79 @@ def load_tendency_finishing(conn, player_id, period, path):
             current_shot, hand = label, "ALL"
         else:
             hand = "LEFT" if "LEFT" in label else "RIGHT"
-        upsert(conn, "player_tendency_finishing", {
-            "player_id": player_id, "period": period,
-            "shot_type": current_shot, "hand": hand,
-            "made": v.get("made", 0), "attempted": v.get("attempted", 0),
-            "pct": v.get("percentage", 0.0),
-        })
+        row = {"player_id": player_id, "period": period,
+               "shot_type": current_shot, "hand": hand,
+               "made": v.get("made", 0), "attempted": v.get("attempted", 0),
+               "pct": v.get("percentage", 0.0)}
+        if competition_type:
+            row["competition_type"] = competition_type
+        upsert(conn, "player_tendency_finishing", row)
 
 
-def load_turnovers(conn, player_id, period, path):
-    for item in json.loads(Path(path).read_text(encoding="utf-8")):
+def load_turnovers(conn, player_id, period, data, competition_type=None):
+    for item in data:
         v = item.get("values", {})
-        upsert(conn, "player_turnovers", {
-            "player_id": player_id, "period": period, "play_type": item["label"],
-            "bad_pass": v.get("BAD_PASS", 0), "traveling": v.get("TRAVELING", 0),
-            "dribble_turnover": v.get("DRIBBLE_TURNOVER", 0),
-            "line_violation": v.get("LINE_VIOLATION", 0),
-            "clock_violation": v.get("CLOCK_VIOLATION", 0),
-            "offensive_foul": v.get("OFFENSIVE_FOUL", 0),
-            "other": v.get("OTHER", 0), "total": v.get("TOTAL", 0),
-        })
+        row = {"player_id": player_id, "period": period, "play_type": item["label"],
+               "bad_pass": v.get("BAD_PASS", 0), "traveling": v.get("TRAVELING", 0),
+               "dribble_turnover": v.get("DRIBBLE_TURNOVER", 0),
+               "line_violation": v.get("LINE_VIOLATION", 0),
+               "clock_violation": v.get("CLOCK_VIOLATION", 0),
+               "offensive_foul": v.get("OFFENSIVE_FOUL", 0),
+               "other": v.get("OTHER", 0), "total": v.get("TOTAL", 0)}
+        if competition_type:
+            row["competition_type"] = competition_type
+        upsert(conn, "player_turnovers", row)
 
 
-def load_shot_zones(conn, player_id, period, is_dribble, path):
-    for item in json.loads(Path(path).read_text(encoding="utf-8")):
+def load_shot_zones(conn, player_id, period, is_dribble, data, competition_type=None):
+    for item in data:
         v = item.get("values", {})
-        upsert(conn, "player_shot_zones", {
-            "player_id": player_id, "period": period,
-            "is_dribble": 1 if is_dribble else 0,
-            "zone": item["label"],
-            "made": v.get("made", 0), "missed": v.get("missed", 0),
-            "total": v.get("total", 0), "pct": v.get("percentage", 0.0),
-        })
+        row = {"player_id": player_id, "period": period,
+               "is_dribble": 1 if is_dribble else 0,
+               "zone": item["label"],
+               "made": v.get("made", 0), "missed": v.get("missed", 0),
+               "total": v.get("total", 0), "pct": v.get("percentage", 0.0)}
+        if competition_type:
+            row["competition_type"] = competition_type
+        upsert(conn, "player_shot_zones", row)
 
 
 PERIOD_RE = r"(LAST_\d+|SEASON|ALL)$"
 TEAM_ID_RE = r"_team_([a-f0-9-]{36})_"
 
 
-def process(conn, path, name_to_id):
+def process(conn, path, name_to_id, data):
     stem = Path(path).stem
 
-    # team info
     if re.search(r"_team_[a-f0-9-]+_info$", stem):
-        load_team_info(conn, path)
+        load_team_info(conn, data)
         return "team_info"
 
-    # matches
     if re.search(r"_team_[a-f0-9-]+_matches$", stem):
-        load_matches(conn, path)
+        load_matches(conn, data)
         return "matches"
 
-    # team data with period
     tm = re.search(TEAM_ID_RE, stem)
     pm = re.search(PERIOD_RE, stem)
     if tm and pm and "_team_" in stem:
         team_id = tm.group(1)
         period  = pm.group(1)
         if "_overall_" in stem and "_offense_" not in stem and "_defense_" not in stem:
-            load_stats(conn, "team_stats", "team_id", team_id, period, path)
+            load_stats(conn, "team_stats", "team_id", team_id, period, data)
         elif "_offense_play_types_" in stem:
-            load_play_types(conn, "team_play_types", "team_id", team_id, period, "offense", path)
+            load_play_types(conn, "team_play_types", "team_id", team_id, period, "offense", data)
         elif "_defense_play_types_" in stem:
-            load_play_types(conn, "team_play_types", "team_id", team_id, period, "defense", path)
+            load_play_types(conn, "team_play_types", "team_id", team_id, period, "defense", data)
         elif "_play_types_detail_" in stem:
-            load_play_types_detail(conn, "team_play_types_detail", "team_id", team_id, period, path)
+            load_play_types_detail(conn, "team_play_types_detail", "team_id", team_id, period, data)
         else:
             return "skip"
         return f"team/{period}"
 
-    # player data with period
     if "_player_" in stem and pm:
         period = pm.group(1)
         after  = stem.split("_player_", 1)[1]
-        # strip period suffix
         safe_name_and_type = re.sub(rf"_{period}$", "", after)
-        # identify data type suffix
         data_types = [
             "shot_zones_no_dribble", "shot_zones_dribble",
             "tendency_shooting", "tendency_dribble", "tendency_finishing",
@@ -455,26 +437,27 @@ def process(conn, path, name_to_id):
         if not player_id:
             return f"skip (unknown: {safe_name})"
 
+        ct = "NATIONAL_TEAMS"
         if data_type == "overall":
-            load_stats(conn, "player_stats", "player_id", player_id, period, path)
+            load_stats(conn, "player_stats", "player_id", player_id, period, data, ct)
         elif data_type == "offense_play_types":
-            load_play_types(conn, "player_play_types", "player_id", player_id, period, "offense", path)
+            load_play_types(conn, "player_play_types", "player_id", player_id, period, "offense", data, ct)
         elif data_type == "defense_play_types":
-            load_play_types(conn, "player_play_types", "player_id", player_id, period, "defense", path)
+            load_play_types(conn, "player_play_types", "player_id", player_id, period, "defense", data, ct)
         elif data_type == "play_types_detail":
-            load_play_types_detail(conn, "player_play_types_detail", "player_id", player_id, period, path)
+            load_play_types_detail(conn, "player_play_types_detail", "player_id", player_id, period, data, ct)
         elif data_type == "tendency_shooting":
-            load_tendency_shooting(conn, player_id, period, path)
+            load_tendency_shooting(conn, player_id, period, data, ct)
         elif data_type == "tendency_dribble":
-            load_tendency_dribble(conn, player_id, period, path)
+            load_tendency_dribble(conn, player_id, period, data, ct)
         elif data_type == "tendency_finishing":
-            load_tendency_finishing(conn, player_id, period, path)
+            load_tendency_finishing(conn, player_id, period, data, ct)
         elif data_type == "turnovers":
-            load_turnovers(conn, player_id, period, path)
+            load_turnovers(conn, player_id, period, data, ct)
         elif data_type == "shot_zones_no_dribble":
-            load_shot_zones(conn, player_id, period, False, path)
+            load_shot_zones(conn, player_id, period, False, data, ct)
         elif data_type == "shot_zones_dribble":
-            load_shot_zones(conn, player_id, period, True, path)
+            load_shot_zones(conn, player_id, period, True, data, ct)
         return f"player/{safe_name}/{data_type}/{period}"
 
     return "skip"
@@ -496,12 +479,25 @@ def main():
     name_to_id = {row[1].replace(" ", "_"): row[0] for row in db_players}
 
     files = sorted(Path(args.data_dir).glob("*.json"))
-    counts: dict[str, int] = {}
-    for f in files:
-        key = process(conn, str(f), name_to_id)
-        counts[key] = counts.get(key, 0) + 1
+    total = len(files)
+    print(f"Loading {total} files...", flush=True)
 
-    conn.commit()
+    def read_file(f):
+        with open(f, encoding="utf-8") as fh:
+            return str(f), json.load(fh)
+
+    counts: dict[str, int] = {}
+    CHUNK = 200
+    for i in range(0, total, CHUNK):
+        chunk = files[i:i + CHUNK]
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            loaded = list(pool.map(read_file, chunk))
+        for path, data in loaded:
+            key = process(conn, path, name_to_id, data)
+            counts[key] = counts.get(key, 0) + 1
+        conn.commit()
+        print(f"  {min(i + CHUNK, total)}/{total}", flush=True)
+
 
     print(f"\nLoaded {len(files)} files → {args.db}\n")
     for k, v in sorted(counts.items()):

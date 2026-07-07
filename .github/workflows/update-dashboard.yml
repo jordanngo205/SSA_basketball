@@ -1,0 +1,71 @@
+name: Update Dashboard
+
+on:
+  schedule:
+    # Run every day at 6am UTC (2am EST / 11pm PST)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests python-dotenv
+
+      - name: Restore DB cache
+        uses: actions/cache@v4
+        with:
+          path: data/db/ssa.db
+          key: ssa-db-${{ runner.os }}
+          restore-keys: |
+            ssa-db-
+
+      - name: Create data dirs
+        run: mkdir -p data/db data/raw
+
+      - name: Scrape WNT teams
+        env:
+          SSA_USERNAME: ${{ secrets.SSA_USERNAME }}
+          SSA_PASSWORD: ${{ secrets.SSA_PASSWORD }}
+        run: python scrape_wnt_db.py
+
+      - name: Scrape club teams
+        env:
+          SSA_USERNAME: ${{ secrets.SSA_USERNAME }}
+          SSA_PASSWORD: ${{ secrets.SSA_PASSWORD }}
+        run: python scrape_clubs.py
+
+      - name: Scrape match stats
+        env:
+          SSA_USERNAME: ${{ secrets.SSA_USERNAME }}
+          SSA_PASSWORD: ${{ secrets.SSA_PASSWORD }}
+        run: python scrape_match_stats.py
+
+      - name: Generate dashboard
+        run: |
+          mkdir -p docs
+          python generate_dashboard.py
+
+      - name: Commit and push dashboard
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html
+          if git diff --staged --quiet; then
+            echo "No changes to dashboard"
+          else
+            git commit -m "chore: auto-update dashboard $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
