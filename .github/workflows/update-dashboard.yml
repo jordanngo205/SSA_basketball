@@ -33,13 +33,15 @@ jobs:
         env:
           SSA_USERNAME: ${{ secrets.SSA_USERNAME }}
           SSA_PASSWORD: ${{ secrets.SSA_PASSWORD }}
-        run: python scrape_wnt_db.py
+        run: python scrape_wnt_db.py --all-periods
 
       - name: Scrape club teams
         env:
           SSA_USERNAME: ${{ secrets.SSA_USERNAME }}
           SSA_PASSWORD: ${{ secrets.SSA_PASSWORD }}
-        run: python scrape_clubs.py
+        run: |
+          python scrape_clubs.py --discover
+          python scrape_clubs.py --all-women --all-periods
 
       - name: Scrape match stats
         env:
