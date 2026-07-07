@@ -3,3 +3,12 @@ __pycache__/
 .venv/
 data/raw/
 data/db/
+*.pdf
+australia_scout_report.html
+beijing_scout_report.html
+canada_wnt_report.html
+egypt_scout_report.html
+france_scout_report.html
+hungary_scout_report.html
+neftchi_scout_report.html
+shooting-map-sm.png
