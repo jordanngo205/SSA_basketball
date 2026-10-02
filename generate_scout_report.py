@@ -15,7 +15,8 @@ Player lookup:
 Output:
     <team_slug>_scout_report.html  — self-contained, shareable HTML file.
 """
-import argparse, sqlite3, os, sys, json, urllib.request, base64
+import argparse, os, sys, json, urllib.request, base64
+import db
 from html import escape
 
 _env = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
@@ -27,7 +28,6 @@ if os.path.exists(_env):
             os.environ.setdefault(k.strip(), v.strip())
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(BASE_DIR, "data", "db", "ssa.db")
 
 COURT_PNG_URL   = "https://www.strongsideanalytics.com/assets/images/shooting-map-sm.png"
 COURT_PNG_LOCAL = os.path.join(BASE_DIR, "shooting-map-sm.png")
@@ -937,8 +937,7 @@ def main():
         print("Missing ANTHROPIC_API_KEY in .env"); sys.exit(1)
 
     ensure_court_png()
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = db.connect(read_only=True)
 
     # Build roster
     player_names = [n.strip() for n in args.players.split(",")] if args.players else None

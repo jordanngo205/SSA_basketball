@@ -15,8 +15,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -24,21 +22,20 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests python-dotenv
-
-      - name: Create data dirs
-        run: mkdir -p data/db data/raw
+        run: pip install requests python-dotenv "psycopg[binary]"
 
       - name: Scrape WNT teams
         env:
           SSA_USERNAME: ${{ secrets.SSA_USERNAME }}
           SSA_PASSWORD: ${{ secrets.SSA_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python scrape_wnt_db.py --all-periods
 
       - name: Scrape club teams
         env:
           SSA_USERNAME: ${{ secrets.SSA_USERNAME }}
           SSA_PASSWORD: ${{ secrets.SSA_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           python scrape_clubs.py --discover
           python scrape_clubs.py --all-women --all-periods
@@ -47,9 +44,12 @@ jobs:
         env:
           SSA_USERNAME: ${{ secrets.SSA_USERNAME }}
           SSA_PASSWORD: ${{ secrets.SSA_PASSWORD }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python scrape_match_stats.py
 
       - name: Generate dashboard
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           mkdir -p docs
           python generate_dashboard.py
@@ -58,7 +58,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html data/db/ssa.db
+          git add docs/index.html
           if git diff --staged --quiet; then
             echo "No changes"
           else

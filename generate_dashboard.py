@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Generate SSA 3x3 Women's Basketball Analytics Dashboard (2025-2026 data)"""
 
-import sqlite3, json, os, sys, base64
+import json, os, sys, base64
+import db
 from html import escape
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'data/db/ssa.db')
 OUT_PATH = os.path.join(os.path.dirname(__file__), 'docs/index.html')
 
 # Embed logo as base64 so the HTML is self-contained (no external file dependency)
@@ -182,7 +182,7 @@ def extract_data(conn):
         JOIN teams at ON at.id = m.away_team_id
         WHERE (COALESCE(m.home_score,0) + COALESCE(m.away_score,0)) > 0
           AND ht.sex='FEMALE' AND at.sex='FEMALE'
-        ORDER BY m.match_date DESC
+        ORDER BY m.match_date DESC, m.id
         LIMIT 300
     """)
     matches_list = [{
@@ -2145,8 +2145,7 @@ populateLgrMatches();
 
 
 def main():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = db.connect(read_only=True)
 
     print("Extracting data from SSA DB...")
     teams, players, play_types, matches, match_stats, match_play_types, match_player_stats = extract_data(conn)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 AI scouting report generator using Groq (free).
-Pre-fetches all stats from SQLite and passes them directly in the prompt.
+Pre-fetches all stats from the database and passes them directly in the prompt.
 
 Usage:
     python scout_groq.py --opponent "Canada WNT" --period LAST_3
@@ -11,7 +11,7 @@ Usage:
 import argparse
 import json
 import os
-import sqlite3
+import db
 import sys
 from pathlib import Path
 
@@ -28,18 +28,12 @@ except ImportError:
     pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(BASE_DIR, "data", "db", "ssa.db")
 
 MODEL = "llama-3.3-70b-versatile"
 
 
 def get_conn():
-    if not os.path.exists(DB_PATH):
-        print(f"Database not found: {DB_PATH}\nRun: python load_ssa_db.py")
-        sys.exit(1)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return db.connect(read_only=True)
 
 
 def q(conn, sql, params=()):

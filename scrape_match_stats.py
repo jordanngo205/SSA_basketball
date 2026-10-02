@@ -14,7 +14,8 @@ Usage:
 Requires: SSA_USERNAME, SSA_PASSWORD in .env
 """
 
-import argparse, os, sys, time, sqlite3
+import argparse, os, sys, time
+import db
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
@@ -23,7 +24,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 import ssa_functions as sf
 
 BASE_DIR = Path(__file__).parent
-DB_PATH  = BASE_DIR / "data" / "db" / "ssa.db"
 
 
 # ---------------------------------------------------------------------------
@@ -351,7 +351,7 @@ def main():
     parser.add_argument("--status",    action="store_true", help="Print what is already stored and exit")
     args = parser.parse_args()
 
-    conn = sqlite3.connect(DB_PATH, timeout=30)
+    conn = db.connect()
     ensure_tables(conn)
 
     if args.status:
@@ -361,7 +361,7 @@ def main():
             FROM matches m
             JOIN teams ht ON ht.id = m.home_team_id
             JOIN teams at ON at.id = m.away_team_id
-            WHERE stat_rows > 0
+            WHERE EXISTS (SELECT 1 FROM match_team_stats WHERE match_id=m.id)
             ORDER BY m.match_date DESC
         """).fetchall()
         total = conn.execute("SELECT COUNT(DISTINCT match_id) FROM match_team_stats").fetchone()[0]

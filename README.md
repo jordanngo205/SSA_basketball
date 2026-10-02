@@ -4,6 +4,8 @@
 
 Scraper and auto-updating analytics dashboard for the SSA 3x3 Women's Series (2026–27), built on [Strong Side Analytics](https://www.strongsideanalytics.com) data for Canada Basketball. Covers women's national teams and club teams, with team, player, play-type and per-match stats.
 
+All data lives in a **Neon Postgres** database (project `3x3-SSA`, Canada Basketball org). Scripts connect through `db.py` using the `DATABASE_URL` connection string.
+
 ---
 
 ## How it updates
@@ -14,9 +16,9 @@ A GitHub Actions workflow (`.github/workflows/update-dashboard.yml`) runs every 
 2. `scrape_clubs.py --discover` then `--all-women --all-periods` — club teams
 3. `scrape_match_stats.py` — per-match team stats
 4. `generate_dashboard.py` — rebuilds `docs/index.html`
-5. Commits `docs/index.html` and `data/db/ssa.db` if anything changed
+5. Commits `docs/index.html` if anything changed
 
-GitHub Pages serves the dashboard from `docs/`. The workflow needs `SSA_USERNAME` and `SSA_PASSWORD` set as repository secrets, and can also be run manually from the Actions tab.
+GitHub Pages serves the dashboard from `docs/`. The workflow needs `SSA_USERNAME`, `SSA_PASSWORD` and `DATABASE_URL` set as repository secrets, and can also be run manually from the Actions tab.
 
 ---
 
@@ -24,8 +26,7 @@ GitHub Pages serves the dashboard from `docs/`. The workflow needs `SSA_USERNAME
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env      # fill in SSA_USERNAME and SSA_PASSWORD
-mkdir -p data/raw data/db
+cp .env.example .env      # fill in SSA_USERNAME, SSA_PASSWORD and DATABASE_URL
 ```
 
 Run the same pipeline as the workflow:
@@ -44,16 +45,18 @@ python generate_dashboard.py
 
 | File | Purpose |
 |---|---|
+| `db.py` | Neon connection used by every script (batched upserts, read-only mode for reports) |
+| `migrate_sqlite_to_neon.py` | One-time copy of the old `data/db/ssa.db` SQLite file into Neon |
 | `ssa_functions.py` | SSA API auth (JWT + refresh token) and endpoint helpers |
-| `scrape_wnt_db.py` | National-team scraper, writes straight to SQLite |
+| `scrape_wnt_db.py` | National-team scraper, writes straight to the database |
 | `scrape_clubs.py` | Club-team discovery and scraper |
 | `scrape_match_stats.py` | Per-match team stats for every match in the DB |
 | `discover_players.py` | Matches roster names to SSA player IDs, then scrapes them |
 | `scrape_ssa.py` | Canada WNT team + player scraper to JSON (`data/raw/`) |
 | `scrape_ssa_all_teams.py` | Same, for every WNT team in the 2026 FIBA CUPS |
-| `load_ssa_db.py` | Loads `data/raw/*.json` into `data/db/ssa.db` |
+| `load_ssa_db.py` | Loads `data/raw/*.json` into the database |
 | `generate_dashboard.py` | Builds the self-contained dashboard HTML |
-| `scout.py`, `scout_claude.py`, `scout_groq.py` | AI opponent scouting reports from the SQLite stats |
+| `scout.py`, `scout_claude.py`, `scout_groq.py` | AI opponent scouting reports from the database |
 | `generate_scout_report.py`, `generate_canada_report.py`, `report_html.py` | Printable scouting reports |
 
 ---
@@ -68,7 +71,7 @@ python scrape_ssa.py --period CURRENT_SEASON      # full season
 python scrape_ssa.py --period LAST_5              # last 5 games
 python scrape_ssa.py --team-only                  # skip per-player
 python scrape_ssa.py --player-id <uuid> --player-name "Name"
-python load_ssa_db.py                             # load JSON into SQLite
+python load_ssa_db.py                             # load JSON into the database
 ```
 
 ### Known IDs

@@ -5,7 +5,7 @@ then scrape full stats for every matched player.
 
 Phase 1: Page all ~1501 players, build name→ID lookup, match against ROSTERS
 Phase 2: Scrape full stats for every matched player
-Phase 3: Load into SQLite
+Phase 3: Load into Neon (Postgres)
 
 Usage:
     python discover_players.py                  # Full run
@@ -19,7 +19,7 @@ import json
 import os
 import sys
 import time
-import sqlite3
+import db
 import unicodedata
 import requests
 from pathlib import Path
@@ -30,7 +30,6 @@ import ssa_functions as sf
 
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 RAW_DIR     = os.path.join(BASE_DIR, "data", "raw")
-DB_PATH     = os.path.join(BASE_DIR, "data", "db", "ssa.db")
 ROSTER_FILE = os.path.join(BASE_DIR, "data", "rosters.json")
 
 SEASON_ID = "cba189ee-e4b9-47c1-a650-437e3828160d"
@@ -158,8 +157,7 @@ def _normalize(name: str) -> str:
 
 
 def get_team_id_map() -> dict[str, str]:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = db.connect()
     rows = conn.execute("SELECT id, name FROM teams").fetchall()
     conn.close()
     return {r["name"]: r["id"] for r in rows}
@@ -407,7 +405,7 @@ def _insert_shot_zones(conn, player_id, period, is_dribble, data):
 
 
 # ---------------------------------------------------------------------------
-# Phase 2: scrape stats directly into SQLite
+# Phase 2: scrape stats directly into the database
 # ---------------------------------------------------------------------------
 
 def scrape_player(session, token, conn, player_id, player_name, period) -> None:
@@ -481,9 +479,7 @@ def main():
     print("Authenticating...")
     token, _ = sf.get_access_token(session, os.getenv("SSA_USERNAME"), os.getenv("SSA_PASSWORD"))
 
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn = db.connect()
 
     if not args.scrape_only:
         print("\n=== Phase 1: Matching players ===")
@@ -516,7 +512,7 @@ def main():
     name_map      = {v: k for k, v in team_id_map.items()}
     total_players = sum(len(v) for v in roster.values())
 
-    print(f"\n=== Phase 2: Scraping → SQLite ({total_players} players, period={args.period}) ===")
+    print(f"\n=== Phase 2: Scraping → Neon ({total_players} players, period={args.period}) ===")
 
     done = 0
     for team_id, players in roster.items():

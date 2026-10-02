@@ -3,7 +3,7 @@
 SSA Clubs Scraper — 2026 season, CLUBS competition type.
 
 Phase 1 (--discover): find the clubs season ID and all club team IDs from matches.
-Phase 2 (--team <name>): scrape team + players into SQLite for one club team.
+Phase 2 (--team <name>): scrape team + players into Neon for one club team.
 Phase 3 (--all): scrape all discovered club teams.
 
 Usage:
@@ -15,7 +15,8 @@ Usage:
 Requires: SSA_USERNAME, SSA_PASSWORD in .env
 """
 
-import argparse, json, os, sys, time, sqlite3, unicodedata
+import argparse, json, os, sys, time, unicodedata
+import db
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
@@ -24,7 +25,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 import ssa_functions as sf
 
 BASE_DIR = Path(__file__).parent
-DB_PATH  = BASE_DIR / "data" / "db" / "ssa.db"
 RAW_DIR  = BASE_DIR / "data" / "raw" / "clubs"
 RAW_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -647,15 +647,7 @@ def main():
         sys.exit(0)
 
     # Open DB
-    conn = sqlite3.connect(str(DB_PATH), timeout=60)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.row_factory = sqlite3.Row
-
-    # Ensure teams table has competition_type column
-    cols = [r[1] for r in conn.execute("PRAGMA table_info(teams)").fetchall()]
-    if "competition_type" not in cols:
-        conn.execute("ALTER TABLE teams ADD COLUMN competition_type TEXT")
-        conn.commit()
+    conn = db.connect()
 
     sex_filter = "FEMALE" if args.all_women else None
     roster_map = build_clubs_roster_map(session, tm, sex_filter=sex_filter)

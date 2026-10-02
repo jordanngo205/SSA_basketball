@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 """
-Load all scraped SSA JSON files into SQLite.
-Usage: python load_ssa_db.py [--data-dir data/raw] [--db data/db/ssa.db]
+Load all scraped SSA JSON files into the Neon database.
+Usage: python load_ssa_db.py [--data-dir data/raw] 
 """
 
 import argparse
 import json
 import os
 import re
-import sqlite3
+import db
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_DIR  = os.path.join(BASE_DIR, "data", "raw")
-DB_PATH  = os.path.join(BASE_DIR, "data", "db", "ssa.db")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS teams (
@@ -466,12 +465,9 @@ def process(conn, path, name_to_id, data):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", default=RAW_DIR)
-    parser.add_argument("--db", default=DB_PATH)
     args = parser.parse_args()
 
-    os.makedirs(os.path.dirname(args.db), exist_ok=True)
-    conn = sqlite3.connect(args.db)
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn = db.connect()
     conn.executescript(SCHEMA)
 
     # Build name→id from DB (populated by discover_players.py before this runs)
@@ -499,7 +495,7 @@ def main():
         print(f"  {min(i + CHUNK, total)}/{total}", flush=True)
 
 
-    print(f"\nLoaded {len(files)} files → {args.db}\n")
+    print(f"\nLoaded {len(files)} files → Neon\n")
     for k, v in sorted(counts.items()):
         mark = "✓" if not k.startswith("skip") else "·"
         print(f"  {mark} {k}: {v}")

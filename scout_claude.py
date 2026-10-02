@@ -12,7 +12,7 @@ Requires ANTHROPIC_API_KEY in environment or .env file.
 import argparse
 import json
 import os
-import sqlite3
+import db
 import sys
 from pathlib import Path
 
@@ -29,7 +29,6 @@ except ImportError:
     pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(BASE_DIR, "data", "db", "ssa.db")
 
 SYSTEM_PROMPT = """You are an elite 3x3 basketball analyst working for Canada WNT.
 Your job is to generate opponent scouting reports that coaches can use immediately.
@@ -104,12 +103,7 @@ RULES:
 
 
 def get_conn():
-    if not os.path.exists(DB_PATH):
-        print(f"Database not found: {DB_PATH}\nRun: python load_ssa_db.py")
-        sys.exit(1)
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return db.connect(read_only=True)
 
 
 def run_query(conn, sql: str) -> str:
@@ -123,6 +117,7 @@ def run_query(conn, sql: str) -> str:
             lines.append(" | ".join(str(v) if v is not None else "-" for v in row))
         return "\n".join(lines)
     except Exception as e:
+        conn.rollback()
         return f"SQL error: {e}"
 
 
@@ -130,7 +125,7 @@ TOOLS = [
     {
         "name": "query_db",
         "description": (
-            "Execute a read-only SQL query against the SQLite scouting database.\n\n"
+            "Execute a read-only SQL query against the PostgreSQL scouting database.\n\n"
             "TABLES:\n"
             "  teams(id, name)  |  players(id, full_name, team_id, position, height, jersey_number)\n"
             "  matches(id, home_team_name, away_team_name, home_score, away_score, match_date)\n"

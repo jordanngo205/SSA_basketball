@@ -2,14 +2,15 @@
 """
 WNT direct-to-DB scraper — mirrors scrape_clubs.py architecture.
 Reads roster from DB (players already discovered), scrapes all endpoints
-for all periods, writes directly to SQLite with competition_type='NATIONAL_TEAMS'.
+for all periods, writes directly to Neon with competition_type='NATIONAL_TEAMS'.
 
 Usage:
     python scrape_wnt_db.py --all-periods          # All WNT teams, all 4 periods
     python scrape_wnt_db.py --team "Canada WNT"    # Single team, all periods
     python scrape_wnt_db.py --period LAST_3        # All teams, one period
 """
-import argparse, os, sys, time, sqlite3
+import argparse, os, sys, time
+import db
 import requests
 from pathlib import Path
 from dotenv import load_dotenv
@@ -18,7 +19,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 import ssa_functions as sf
 
 BASE_DIR  = Path(__file__).parent
-DB_PATH   = BASE_DIR / "data" / "db" / "ssa.db"
 COMP_TYPE = "NATIONAL_TEAMS"
 SEASON_ID = "cba189ee-e4b9-47c1-a650-437e3828160d"
 ALL_PERIODS = ["SEASON", "LAST_1", "LAST_3", "LAST_5"]
@@ -350,9 +350,7 @@ def main():
     session, tm = auth()
     print("SSA authenticated.")
 
-    conn = sqlite3.connect(DB_PATH, timeout=60)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.row_factory = sqlite3.Row
+    conn = db.connect()
 
     # Load WNT team names from DB
     wnt_team_names = dict(conn.execute(
