@@ -1,105 +1,77 @@
-# SSA Scraper — Canada WNT
+# SSA 3x3 Women's Series — Analytics Dashboard
 
-Scrapes all data from [Strong Side Analytics](https://www.strongsideanalytics.com) for Canada WNT.
+**Live dashboard:** https://jordanngo205.github.io/SSA_basketball/
 
-Mirrors the structure of the Synergy scraper in CoachVision.
+Scraper and auto-updating analytics dashboard for the SSA 3x3 Women's Series (2026–27), built on [Strong Side Analytics](https://www.strongsideanalytics.com) data for Canada Basketball. Covers women's national teams and club teams, with team, player, play-type and per-match stats.
 
 ---
 
-## Setup
+## How it updates
+
+A GitHub Actions workflow (`.github/workflows/update-dashboard.yml`) runs every day at 06:00 UTC:
+
+1. `scrape_wnt_db.py --all-periods` — women's national teams
+2. `scrape_clubs.py --discover` then `--all-women --all-periods` — club teams
+3. `scrape_match_stats.py` — per-match team stats
+4. `generate_dashboard.py` — rebuilds `docs/index.html`
+5. Commits `docs/index.html` and `data/db/ssa.db` if anything changed
+
+GitHub Pages serves the dashboard from `docs/`. The workflow needs `SSA_USERNAME` and `SSA_PASSWORD` set as repository secrets, and can also be run manually from the Actions tab.
+
+---
+
+## Local setup
 
 ```bash
-# 1. Install dependencies
 pip install -r requirements.txt
-
-# 2. Create your .env file
-cp .env.example .env
-# Edit .env and fill in your SSA credentials
-
-# 3. Create output directories (auto-created on first run, but just in case)
+cp .env.example .env      # fill in SSA_USERNAME and SSA_PASSWORD
 mkdir -p data/raw data/db
 ```
 
----
+Run the same pipeline as the workflow:
 
-## Usage
-
-### Scrape everything (team + all players, last 3 games)
 ```bash
-python scrape_ssa.py
-```
-
-### Scrape full season
-```bash
-python scrape_ssa.py --period CURRENT_SEASON
-```
-
-### Scrape last 5 games
-```bash
-python scrape_ssa.py --period LAST_5
-```
-
-### Scrape team data only (skip per-player)
-```bash
-python scrape_ssa.py --team-only
-```
-
-### Scrape a single player
-```bash
-python scrape_ssa.py \
-  --player-id d29fd8da-3ead-4c41-aa12-b496fb0debe9 \
-  --player-name "Paige Crozon"
-```
-
-### Load scraped JSON into SQLite
-```bash
-python load_ssa_db.py
+python scrape_wnt_db.py --all-periods
+python scrape_clubs.py --discover
+python scrape_clubs.py --all-women --all-periods
+python scrape_match_stats.py
+python generate_dashboard.py
 ```
 
 ---
 
-## What gets scraped
+## Files
 
-### Team level
-| File pattern | Contents |
+| File | Purpose |
 |---|---|
-| `*_team_*_overall_*.json` | Points, possessions, shooting splits, rebounds, assists, turnovers, blocks, steals, fouls |
-| `*_team_*_additional_offense_*.json` | Shooting efficiency, shooting value |
-| `*_team_*_play_types_*.json` | Set play / open play / transition breakdown (offense + defense) |
-| `*_team_*_defensive_*.json` | Defensive stats |
-| `*_team_*_matches.json` | All game results with scores |
-| `*_team_*_info.json` | Team metadata + roster |
-
-### Player level (per player on roster)
-| File pattern | Contents |
-|---|---|
-| `*_player_*_overall_*.json` | Full box stats |
-| `*_player_*_additional_offense_*.json` | Shooting efficiency |
-| `*_player_*_play_types_*.json` | Play type breakdown |
-| `*_player_*_defensive_*.json` | Defensive stats |
-| `*_player_*_shot_chart_*.json` | Shot zone data |
+| `ssa_functions.py` | SSA API auth (JWT + refresh token) and endpoint helpers |
+| `scrape_wnt_db.py` | National-team scraper, writes straight to SQLite |
+| `scrape_clubs.py` | Club-team discovery and scraper |
+| `scrape_match_stats.py` | Per-match team stats for every match in the DB |
+| `discover_players.py` | Matches roster names to SSA player IDs, then scrapes them |
+| `scrape_ssa.py` | Canada WNT team + player scraper to JSON (`data/raw/`) |
+| `scrape_ssa_all_teams.py` | Same, for every WNT team in the 2026 FIBA CUPS |
+| `load_ssa_db.py` | Loads `data/raw/*.json` into `data/db/ssa.db` |
+| `generate_dashboard.py` | Builds the self-contained dashboard HTML |
+| `scout.py`, `scout_claude.py`, `scout_groq.py` | AI opponent scouting reports from the SQLite stats |
+| `generate_scout_report.py`, `generate_canada_report.py`, `report_html.py` | Printable scouting reports |
 
 ---
 
-## Data flow
+## Single-team JSON scraper
 
-```
-SSA API
-  ↓
-scrape_ssa.py          → data/raw/*.json
-  ↓
-load_ssa_db.py         → data/db/ssa.db
-  ↓
-SQLite tables:
-  ssa_team_stats
-  ssa_player_stats
-  ssa_player_play_types
-  ssa_matches
+`scrape_ssa.py` pulls every data type on the SSA team page into `data/raw/`:
+
+```bash
+python scrape_ssa.py                              # team + players, last 3 games
+python scrape_ssa.py --period CURRENT_SEASON      # full season
+python scrape_ssa.py --period LAST_5              # last 5 games
+python scrape_ssa.py --team-only                  # skip per-player
+python scrape_ssa.py --player-id <uuid> --player-name "Name"
+python load_ssa_db.py                             # load JSON into SQLite
 ```
 
----
-
-## Known IDs
+### Known IDs
 
 | Entity | ID |
 |---|---|
@@ -110,15 +82,8 @@ SQLite tables:
 
 ## Troubleshooting
 
-**Player endpoints return 404**
-The shot_chart and additional_offense player endpoints are inferred from the team endpoint pattern.
-If they 404, open the network tab on a player profile page in SSA and copy the actual URL paths,
-then update `ssa_functions.py` accordingly.
+**Player endpoints return 404** — the shot_chart and additional_offense player endpoints are inferred from the team endpoint pattern. Copy the real paths from the network tab on an SSA player page and update `ssa_functions.py`.
 
-**Roster not found**
-If `get_team_info` returns no players array, check `data/raw/*_team_info.json` to see
-what field the roster is nested under. Update `get_roster()` in `scrape_ssa.py`.
+**Roster not found** — check `data/raw/*_team_info.json` for the field the roster is nested under and update `get_roster()` in `scrape_ssa.py`.
 
-**Token expired mid-scrape**
-The token lasts 1 hour. For large scrapes, add token refresh logic using
-`sf.refresh_access_token(session, refresh_token)` in `scrape_ssa.py`.
+**Token expired mid-scrape** — tokens last 1 hour. For long scrapes, call `sf.refresh_access_token(session, refresh_token)`.
